@@ -10,7 +10,7 @@ local killAllEnabled = true
 local autoEquipEnabled = true
 local hopEnabled = true
 
-local minPlayersToHop = 7
+local minPlayersToHop = 10
 local targetMinPlayers = 7
 local maxPreferredPlayers = 18   -- New: Prefer up to 18 players
 -- =================================================
