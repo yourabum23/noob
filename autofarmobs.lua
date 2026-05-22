@@ -1,4 +1,4 @@
--- Larp Hub - Kill All + Auto Equip + MAX ANTI-REJOIN + Safe Hidden Baseplate
+-- Larp Hub - Kill All + Auto Equip + MAX ANTI-REJOIN + Teleport to "Part"
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -14,7 +14,7 @@ local minPlayersToHop = 7
 local targetMinPlayers = 7
 local maxPreferredPlayers = 18
 
-local hiddenSafeEnabled = true
+local teleportToPartEnabled = true
 local antiKnockbackEnabled = true
 -- =================================================
 
@@ -35,33 +35,38 @@ end
 
 addToAvoidList(game.JobId)
 
--- ====================== HIDDEN SAFE BASEPLATE SPOT ======================
--- New safer position (floating platform area, hard to reach)
-local safeCFrame = CFrame.new(250, 450, -850)
+-- ====================== TELEPORT TO "Part" ======================
+local hasTeleported = false
 
-local hasTeleportedSafe = false
-
-local function teleportToSafeSpot()
-    if hasTeleportedSafe then return end
-    local char = player.Character
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        char.HumanoidRootPart.CFrame = safeCFrame
-        hasTeleportedSafe = true
-        print("🛡️ Teleported to Hidden Safe Baseplate (One time only)")
+local function teleportToPart()
+    if hasTeleported then return end
+    
+    local targetPart = Workspace:FindFirstChild("Part", true) -- Search recursively
+    
+    if targetPart and targetPart:IsA("BasePart") then
+        local char = player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local root = char.HumanoidRootPart
+            root.CFrame = targetPart.CFrame + Vector3.new(0, 5, 0) -- Slightly above the part
+            hasTeleported = true
+            print("🛡️ Teleported to Part: " .. targetPart.Name)
+        end
+    else
+        print("⚠️ Could not find 'Part' in workspace")
     end
 end
 
--- Teleport once after character loads
+-- Teleport once when character loads
 task.spawn(function()
-    if hiddenSafeEnabled then
+    if teleportToPartEnabled then
         player.CharacterAdded:Connect(function()
-            task.wait(1.8)
-            teleportToSafeSpot()
+            task.wait(2)
+            teleportToPart()
         end)
         
         if player.Character then
-            task.wait(1.8)
-            teleportToSafeSpot()
+            task.wait(2)
+            teleportToPart()
         end
     end
 end)
@@ -85,7 +90,6 @@ end
 
 if antiKnockbackEnabled then
     enableAntiKnockback()
-    print("🛡️ Anti Knockback Activated")
 end
 
 local function applyPerformanceBoost()
@@ -97,12 +101,6 @@ local function applyPerformanceBoost()
         Lighting.FogStart = 100000
         settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
         setfpscap(9999)
-       
-        for _, v in ipairs(Workspace:GetDescendants()) do
-            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or v:IsA("Fire") then
-                v.Enabled = false
-            end
-        end
     end)
 end
 
@@ -215,7 +213,7 @@ if autoEquipEnabled then
     end)
 end
 
--- ====================== KILL ALL ======================
+-- ====================== KILL ALL (Improved) ======================
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
@@ -223,7 +221,7 @@ task.spawn(function()
     while killAllEnabled and not hasHopped do
         local char = player.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then
-            task.wait(0.6) continue
+            task.wait(0.5) continue
         end
        
         local rightHand = char:FindFirstChild("RightHand")
@@ -242,7 +240,7 @@ task.spawn(function()
                 pcall(function()
                     firetouchinterest(rightHand, tRoot, 1)
                     firetouchinterest(leftHand, tRoot, 1)
-                    task.wait(0.015)
+                    task.wait(0.01)
                     firetouchinterest(rightHand, tRoot, 0)
                     firetouchinterest(leftHand, tRoot, 0)
                    
@@ -251,10 +249,10 @@ task.spawn(function()
                 end)
             end
         end
-        task.wait(0.18)
+        task.wait(0.15) -- Faster loop
     end
 end)
 
-print("✅ Script Loaded - Hidden Safe Baseplate")
-print(" → One-time teleport to unreachable area")
-print(" → Kill All + Anti Knockback active")
+print("✅ Script Loaded - Teleport to 'Part'")
+print(" → Teleports to Part once | Improved Kill All")
+print(" → Anti Knockback Active")
