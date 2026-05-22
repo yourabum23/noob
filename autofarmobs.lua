@@ -1,5 +1,5 @@
--- // Muscle Masters - Best Bench Super Aggressive v3
--- Fixed bench interaction
+-- // Muscle Masters - Super Fast Weight Lifting Script
+-- Auto finds and uses the best weights / dumbbells
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -11,7 +11,7 @@ local ws = workspace
 
 local strengthMultiplier = 99999999
 
-print("🔥 Muscle Masters Best Bench v3 Loaded - Aggressive Mode")
+print("🔥 Muscle Masters Auto Weights Script Loaded")
 
 -- Anti-AFK
 player.Idled:Connect(function()
@@ -20,14 +20,20 @@ player.Idled:Connect(function()
     game:GetService("VirtualUser"):Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
 end)
 
-local function getBestBench()
+-- Find Best Weight / Dumbbell
+local function getBestWeight()
     local best = nil
     local bestScore = 0
     
     for _, obj in pairs(ws:GetDescendants()) do
         local n = obj.Name:lower()
-        if n:find("bench") or n:find("press") or n:find("emperor") or n:find("king") or n:find("legend") or n:find("ultimate") then
-            local score = n:find("emperor") and 1000 or n:find("king") and 700 or n:find("legend") and 500 or 100
+        if n:find("weight") or n:find("dumbbell") or n:find("barbell") or n:find("heavy") or n:find("king") or n:find("emperor") then
+            local score = 0
+            if n:find("emperor") or n:find("ultimate") then score = 1000
+            elseif n:find("king") or n:find("legend") then score = 700
+            elseif n:find("heavy") or n:find("pro") then score = 400
+            else score = 100
+            end
             if score > bestScore then
                 bestScore = score
                 best = obj
@@ -37,33 +43,25 @@ local function getBestBench()
     return best
 end
 
--- Aggressive Bench Loop
+-- Aggressive Weight Lifting Loop
 spawn(function()
     while true do
-        task.wait(0.4)
+        task.wait(0.3)
         
-        local bench = getBestBench()
-        if bench then
-            -- Find any interactable part/prompt
-            local targetPart = bench:FindFirstChildWhichIsA("BasePart") or bench:FindFirstChild("Seat") or bench.PrimaryPart
+        local weight = getBestWeight()
+        if weight then
+            local targetPart = weight:FindFirstChildWhichIsA("BasePart") or weight.PrimaryPart or weight
             
             if targetPart then
-                -- Teleport right on it
-                root.CFrame = targetPart.CFrame * CFrame.new(0, 2, 0) * CFrame.Angles(0, math.rad(90), 0)
+                -- Teleport close to the weight
+                root.CFrame = targetPart.CFrame * CFrame.new(0, 3, 2)
                 task.wait(0.2)
                 
-                -- Spam every proximity prompt on the bench
-                for _, prompt in pairs(bench:GetDescendants()) do
+                -- Spam ALL proximity prompts on the weight
+                for _, prompt in pairs(weight:GetDescendants()) do
                     if prompt:IsA("ProximityPrompt") then
-                        fireproximityprompt(prompt, 0)  -- 0 = instant
-                        task.wait(0.05)
-                    end
-                end
-                
-                -- Global prompt spam for any bench press
-                for _, prompt in pairs(ws:GetDescendants()) do
-                    if prompt:IsA("ProximityPrompt") and (prompt.Name:lower():find("bench") or prompt.Name:lower():find("press")) then
                         fireproximityprompt(prompt, 0)
+                        task.wait(0.03)
                     end
                 end
             end
@@ -71,13 +69,13 @@ spawn(function()
     end
 end)
 
--- Insane Training Spam
+-- Insane Strength Spam
 spawn(function()
     while true do
-        task.wait(0.008)  -- Extremely fast
+        task.wait(0.007)
         
         pcall(function()
-            local remotes = {"TrainEvent", "StrengthEvent", "LiftEvent", "BenchEvent", "Workout", "GainStrength", "RepEvent"}
+            local remotes = {"TrainEvent", "StrengthEvent", "LiftEvent", "WeightEvent", "RepEvent", "GainStrength", "WorkoutEvent"}
             for _, name in ipairs(remotes) do
                 local remote = rs:FindFirstChild(name, true)
                 if remote and remote:IsA("RemoteEvent") then
@@ -102,7 +100,7 @@ spawn(function()
 end)
 
 game.StarterGui:SetCore("SendNotification", {
-    Title = "Muscle Masters v3";
-    Text = "Aggressive Best Bench + Super Fast Gains ON";
+    Title = "Muscle Masters";
+    Text = "Auto Best Weights + Super Fast Gains ON 💪";
     Duration = 8;
 })
