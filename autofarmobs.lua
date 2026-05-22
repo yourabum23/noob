@@ -1,118 +1,245 @@
--- // Muscle Masters - ULTRA FAST Weight Lifting + Quick Rebirth
--- Gets on weight + LIFTS SUPER FAST
-
+-- Larp Hub - Kill All + Auto Equip + MAX ANTI-REJOIN + Freeze in Air
 local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local root = character:WaitForChild("HumanoidRootPart")
-local hum = character:WaitForChild("Humanoid")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
-local rs = game:GetService("ReplicatedStorage")
-local ws = workspace
+-- ==================== SETTINGS ====================
+local killAllEnabled = true
+local autoEquipEnabled = true
+local hopEnabled = true
 
-local strengthMultiplier = 999999999
+local minPlayersToHop = 7
+local targetMinPlayers = 7
+local maxPreferredPlayers = 18
 
-print("🔥 ULTRA FAST Weights + Quick Rebirth Loaded")
+local freezeInAirEnabled = true
+local freezeHeight = 10000     -- How high in the air (change if needed)
+-- =================================================
 
--- Anti-AFK
-player.Idled:Connect(function()
-    game:GetService("VirtualUser"):Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-    task.wait(1)
-    game:GetService("VirtualUser"):Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-end)
+local disableAllGUIs = true
 
-local function getBestWeight()
-    local best = nil
-    local bestScore = 0
-    for _, obj in pairs(ws:GetDescendants()) do
-        local n = obj.Name:lower()
-        if n:find("weight") or n:find("dumbbell") or n:find("barbell") or n:find("heavy") or n:find("king") or n:find("emperor") or n:find("legend") then
-            local score = (n:find("emperor") or n:find("ultimate")) and 1000 
-                       or (n:find("king") or n:find("legend")) and 700 
-                       or 200
-            if score > bestScore then
-                bestScore = score
-                best = obj
-            end
+-- MAX BLACKLIST
+getgenv().AvoidedServers = getgenv().AvoidedServers or {}
+local maxAvoid = 60
+
+local function addToAvoidList(jobId)
+    if not table.find(getgenv().AvoidedServers, jobId) then
+        table.insert(getgenv().AvoidedServers, jobId)
+        if #getgenv().AvoidedServers > maxAvoid then
+            table.remove(getgenv().AvoidedServers, 1)
         end
     end
-    return best
 end
 
--- MAIN LIFTING LOOP - SUPER AGGRESSIVE
-spawn(function()
-    while true do
-        task.wait(0.15)  -- Fast but stable
-        
-        local weight = getBestWeight()
-        if weight and root then
-            local target = weight:FindFirstChildWhichIsA("BasePart") or weight.PrimaryPart or weight
+addToAvoidList(game.JobId)
+
+-- ====================== FREEZE IN AIR ======================
+local freezeConnection = nil
+
+local function freezePlayerInAir()
+    if not freezeInAirEnabled then return end
+    
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
+    local root = char.HumanoidRootPart
+    
+    -- Move high up once
+    root.CFrame = root.CFrame * CFrame.new(0, freezeHeight, 0)
+    
+    print("🛡️ Frozen in the air at height " .. freezeHeight)
+    
+    -- Freeze position every frame
+    freezeConnection = RunService.Heartbeat:Connect(function()
+        if root and root.Parent then
+            root.Velocity = Vector3.new(0, 0, 0)
+            root.RotVelocity = Vector3.new(0, 0, 0)
             
-            if target then
-                -- Teleport + face it
-                root.CFrame = target.CFrame * CFrame.new(0, 3, 1.5) * CFrame.Angles(0, math.rad(180), 0)
-                task.wait(0.1)
-                
-                -- SPAM EVERY PROMPT LIKE CRAZY
-                for _, prompt in pairs(weight:GetDescendants()) do
-                    if prompt:IsA("ProximityPrompt") then
-                        fireproximityprompt(prompt, 0)
-                        task.wait(0.02)
-                    end
-                end
-                
-                -- Global weight prompt spam
-                for _, prompt in pairs(ws:GetDescendants()) do
-                    if prompt:IsA("ProximityPrompt") and 
-                       (prompt.Name:lower():find("lift") or prompt.Name:lower():find("weight") or prompt.Name:lower():find("dumbbell")) then
-                        fireproximityprompt(prompt, 0)
-                    end
-                end
-            end
+            -- Constantly lock position
+            local currentPos = root.Position
+            root.CFrame = CFrame.new(currentPos.X, freezeHeight, currentPos.Z)
+        end
+    end)
+end
+
+-- Activate freeze when character loads
+task.spawn(function()
+    if freezeInAirEnabled then
+        player.CharacterAdded:Connect(function()
+            task.wait(1.5)
+            freezePlayerInAir()
+        end)
+        
+        if player.Character then
+            task.wait(1.5)
+            freezePlayerInAir()
         end
     end
 end)
 
--- INSANE STRENGTH REMOTE SPAM (this is what gives mad fast gains)
-spawn(function()
-    while true do
-        task.wait(0.005)  -- Extremely fast loop
-        
-        pcall(function()
-            local remotes = {
-                "TrainEvent", "StrengthEvent", "LiftEvent", "WeightEvent", 
-                "RepEvent", "GainStrength", "WorkoutEvent", "BenchEvent",
-                "MuscleEvent", "PowerEvent"
-            }
-            
-            for _, name in ipairs(remotes) do
-                local remote = rs:FindFirstChild(name, true)
-                if remote and remote:IsA("RemoteEvent") then
-                    remote:FireServer(strengthMultiplier)
-                    task.wait(0.001)
+local function applyPerformanceBoost()
+    pcall(function()
+        Lighting.GlobalShadows = false
+        Lighting.Brightness = 1
+        Lighting.ClockTime = 12
+        Lighting.FogEnd = 100000
+        Lighting.FogStart = 100000
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        setfpscap(9999)
+    end)
+end
+
+local function disableGUIs()
+    if not disableAllGUIs then return end
+    task.spawn(function()
+        while disableAllGUIs do
+            pcall(function()
+                for _, gui in ipairs(player.PlayerGui:GetChildren()) do
+                    if gui:IsA("ScreenGui") then gui.Enabled = false end
+                end
+            end)
+            task.wait(5)
+        end
+    end)
+end
+
+-- ====================== SERVER HOP ======================
+local hasHopped = false
+
+local function findBestServer()
+    local success, result = pcall(function()
+        local goodServers = {}
+        local cursor = ""
+       
+        for page = 1, 50 do
+            local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
+            if cursor ~= "" then url = url .. "&cursor=" .. cursor end
+           
+            local response = HttpService:GetAsync(url)
+            local data = HttpService:JSONDecode(response)
+           
+            for _, server in ipairs(data.data) do
+                local plrs = server.playing
+                if plrs >= targetMinPlayers and plrs <= maxPreferredPlayers 
+                   and plrs < server.maxPlayers 
+                   and not table.find(getgenv().AvoidedServers, server.id) then
+                    table.insert(goodServers, server)
                 end
             end
-        end)
-    end
-end)
+           
+            cursor = data.nextPageCursor
+            if not cursor then break end
+            task.wait(0.04)
+        end
+       
+        if #goodServers == 0 then return nil end
+       
+        table.sort(goodServers, function(a, b) return a.playing > b.playing end)
+       
+        local top = math.min(20, #goodServers)
+        for i = top, 2, -1 do
+            local j = math.random(i)
+            goodServers[i], goodServers[j] = goodServers[j], goodServers[i]
+        end
+       
+        return goodServers[1]
+    end)
+   
+    return success and result or nil
+end
 
--- QUICK REBIRTH (rebirths as soon as possible)
-spawn(function()
-    while true do
-        task.wait(0.4)  -- Very fast rebirth check
-        pcall(function()
-            local reb = rs:FindFirstChild("RebirthEvent", true) 
-                     or rs:FindFirstChild("Rebirth", true) 
-                     or rs:FindFirstChild("RebirthRequest", true)
-            
-            if reb then
-                reb:FireServer()
+local function serverHop(reason)
+    if hasHopped then return end
+    hasHopped = true
+   
+    print("🔄 " .. reason .. " | Avoiding " .. #getgenv().AvoidedServers .. " servers...")
+    task.wait(4)
+   
+    local bestServer = findBestServer()
+   
+    if bestServer then
+        addToAvoidList(bestServer.id)
+        print("🎯 Found " .. bestServer.playing .. " players → Hopping")
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, bestServer.id, player)
+    else
+        print("⚠️ Forcing BLIND hop...")
+        task.wait(2.5)
+        addToAvoidList(game.JobId)
+        TeleportService:Teleport(game.PlaceId, player)
+    end
+end
+
+if hopEnabled then
+    task.spawn(function()
+        while hopEnabled and not hasHopped do
+            local current = #game.Players:GetPlayers()
+            if current < minPlayersToHop then
+                serverHop("Player count dropped to " .. current)
+                break
             end
-        end)
+            task.wait(2)
+        end
+    end)
+end
+
+-- ====================== AUTO EQUIP ======================
+if autoEquipEnabled then
+    task.spawn(function()
+        while autoEquipEnabled do
+            local char = player.Character
+            if char then
+                local punch = player.Backpack:FindFirstChild("Punch")
+                if punch and not char:FindFirstChild("Punch") then
+                    punch.Parent = char
+                end
+            end
+            task.wait(0.15)
+        end
+    end)
+end
+
+-- ====================== KILL ALL ======================
+task.spawn(function()
+    applyPerformanceBoost()
+    disableGUIs()
+   
+    while killAllEnabled and not hasHopped do
+        local char = player.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then
+            task.wait(0.5) continue
+        end
+       
+        local rightHand = char:FindFirstChild("RightHand")
+        local leftHand = char:FindFirstChild("LeftHand")
+        if not (rightHand and leftHand) then 
+            task.wait(0.4) continue 
+        end
+       
+        for _, target in ipairs(game.Players:GetPlayers()) do
+            if target == player then continue end
+            local tChar = target.Character
+            if not tChar then continue end
+            local tRoot = tChar:FindFirstChild("HumanoidRootPart")
+            local tHum = tChar:FindFirstChild("Humanoid")
+            if tRoot and tHum and tHum.Health > 0 then
+                pcall(function()
+                    firetouchinterest(rightHand, tRoot, 1)
+                    firetouchinterest(leftHand, tRoot, 1)
+                    task.wait(0.01)
+                    firetouchinterest(rightHand, tRoot, 0)
+                    firetouchinterest(leftHand, tRoot, 0)
+                   
+                    player.muscleEvent:FireServer("punch", "rightHand")
+                    player.muscleEvent:FireServer("punch", "leftHand")
+                end)
+            end
+        end
+        task.wait(0.15)
     end
 end)
 
-game.StarterGui:SetCore("SendNotification", {
-    Title = "Muscle Masters";
-    Text = "ULTRA FAST Lifting + Quick Rebirth ACTIVATED 💪";
-    Duration = 10;
-})
+print("✅ Script Loaded - Frozen in Air")
+print(" → You are frozen high in the sky | Kill All Active")
