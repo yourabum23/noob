@@ -1,5 +1,5 @@
--- // Muscle Masters - Super Fast Weight Lifting Script
--- Auto finds and uses the best weights / dumbbells
+-- // Muscle Masters - ULTRA FAST Weight Lifting + Quick Rebirth
+-- Gets on weight + LIFTS SUPER FAST
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -9,9 +9,9 @@ local hum = character:WaitForChild("Humanoid")
 local rs = game:GetService("ReplicatedStorage")
 local ws = workspace
 
-local strengthMultiplier = 99999999
+local strengthMultiplier = 999999999
 
-print("🔥 Muscle Masters Auto Weights Script Loaded")
+print("🔥 ULTRA FAST Weights + Quick Rebirth Loaded")
 
 -- Anti-AFK
 player.Idled:Connect(function()
@@ -20,20 +20,15 @@ player.Idled:Connect(function()
     game:GetService("VirtualUser"):Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
 end)
 
--- Find Best Weight / Dumbbell
 local function getBestWeight()
     local best = nil
     local bestScore = 0
-    
     for _, obj in pairs(ws:GetDescendants()) do
         local n = obj.Name:lower()
-        if n:find("weight") or n:find("dumbbell") or n:find("barbell") or n:find("heavy") or n:find("king") or n:find("emperor") then
-            local score = 0
-            if n:find("emperor") or n:find("ultimate") then score = 1000
-            elseif n:find("king") or n:find("legend") then score = 700
-            elseif n:find("heavy") or n:find("pro") then score = 400
-            else score = 100
-            end
+        if n:find("weight") or n:find("dumbbell") or n:find("barbell") or n:find("heavy") or n:find("king") or n:find("emperor") or n:find("legend") then
+            local score = (n:find("emperor") or n:find("ultimate")) and 1000 
+                       or (n:find("king") or n:find("legend")) and 700 
+                       or 200
             if score > bestScore then
                 bestScore = score
                 best = obj
@@ -43,25 +38,33 @@ local function getBestWeight()
     return best
 end
 
--- Aggressive Weight Lifting Loop
+-- MAIN LIFTING LOOP - SUPER AGGRESSIVE
 spawn(function()
     while true do
-        task.wait(0.3)
+        task.wait(0.15)  -- Fast but stable
         
         local weight = getBestWeight()
-        if weight then
-            local targetPart = weight:FindFirstChildWhichIsA("BasePart") or weight.PrimaryPart or weight
+        if weight and root then
+            local target = weight:FindFirstChildWhichIsA("BasePart") or weight.PrimaryPart or weight
             
-            if targetPart then
-                -- Teleport close to the weight
-                root.CFrame = targetPart.CFrame * CFrame.new(0, 3, 2)
-                task.wait(0.2)
+            if target then
+                -- Teleport + face it
+                root.CFrame = target.CFrame * CFrame.new(0, 3, 1.5) * CFrame.Angles(0, math.rad(180), 0)
+                task.wait(0.1)
                 
-                -- Spam ALL proximity prompts on the weight
+                -- SPAM EVERY PROMPT LIKE CRAZY
                 for _, prompt in pairs(weight:GetDescendants()) do
                     if prompt:IsA("ProximityPrompt") then
                         fireproximityprompt(prompt, 0)
-                        task.wait(0.03)
+                        task.wait(0.02)
+                    end
+                end
+                
+                -- Global weight prompt spam
+                for _, prompt in pairs(ws:GetDescendants()) do
+                    if prompt:IsA("ProximityPrompt") and 
+                       (prompt.Name:lower():find("lift") or prompt.Name:lower():find("weight") or prompt.Name:lower():find("dumbbell")) then
+                        fireproximityprompt(prompt, 0)
                     end
                 end
             end
@@ -69,29 +72,38 @@ spawn(function()
     end
 end)
 
--- Insane Strength Spam
+-- INSANE STRENGTH REMOTE SPAM (this is what gives mad fast gains)
 spawn(function()
     while true do
-        task.wait(0.007)
+        task.wait(0.005)  -- Extremely fast loop
         
         pcall(function()
-            local remotes = {"TrainEvent", "StrengthEvent", "LiftEvent", "WeightEvent", "RepEvent", "GainStrength", "WorkoutEvent"}
+            local remotes = {
+                "TrainEvent", "StrengthEvent", "LiftEvent", "WeightEvent", 
+                "RepEvent", "GainStrength", "WorkoutEvent", "BenchEvent",
+                "MuscleEvent", "PowerEvent"
+            }
+            
             for _, name in ipairs(remotes) do
                 local remote = rs:FindFirstChild(name, true)
                 if remote and remote:IsA("RemoteEvent") then
                     remote:FireServer(strengthMultiplier)
+                    task.wait(0.001)
                 end
             end
         end)
     end
 end)
 
--- Auto Rebirth
+-- QUICK REBIRTH (rebirths as soon as possible)
 spawn(function()
     while true do
-        task.wait(0.8)
+        task.wait(0.4)  -- Very fast rebirth check
         pcall(function()
-            local reb = rs:FindFirstChild("RebirthEvent", true) or rs:FindFirstChild("Rebirth", true)
+            local reb = rs:FindFirstChild("RebirthEvent", true) 
+                     or rs:FindFirstChild("Rebirth", true) 
+                     or rs:FindFirstChild("RebirthRequest", true)
+            
             if reb then
                 reb:FireServer()
             end
@@ -101,6 +113,6 @@ end)
 
 game.StarterGui:SetCore("SendNotification", {
     Title = "Muscle Masters";
-    Text = "Auto Best Weights + Super Fast Gains ON 💪";
-    Duration = 8;
+    Text = "ULTRA FAST Lifting + Quick Rebirth ACTIVATED 💪";
+    Duration = 10;
 })
