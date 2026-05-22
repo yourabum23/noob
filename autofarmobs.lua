@@ -1,9 +1,10 @@
--- Larp Hub - Kill All + Auto Equip + MAX ANTI-REJOIN (Blind Hop Focus)
+-- Larp Hub - Kill All + Auto Equip + MAX ANTI-REJOIN + Tiny Island Safe Teleport
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
 -- ==================== SETTINGS ====================
 local killAllEnabled = true
@@ -13,6 +14,8 @@ local hopEnabled = true
 local minPlayersToHop = 10
 local targetMinPlayers = 7
 local maxPreferredPlayers = 18
+
+local safeIslandEnabled = true   -- ← Toggle this for Tiny Island safe mode
 -- =================================================
 
 local disableAllGUIs = true
@@ -31,6 +34,32 @@ local function addToAvoidList(jobId)
 end
 
 addToAvoidList(game.JobId)
+
+-- ====================== TINY ISLAND TELEPORT ======================
+local tinyIslandCFrame = CFrame.new(-4.25, 221, 1963.6)  -- Reliable safe spot on Tiny Island
+
+local function teleportToTinyIsland()
+    local char = player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        char.HumanoidRootPart.CFrame = tinyIslandCFrame
+        print("🛡️ Teleported to Tiny Island Safe Spot!")
+    else
+        print("⚠️ Character not loaded yet...")
+    end
+end
+
+-- Auto teleport to safe island when enabled
+if safeIslandEnabled then
+    task.spawn(function()
+        while safeIslandEnabled do
+            teleportToTinyIsland()
+            task.wait(8)  -- Re-teleport every 8 seconds in case you get knocked
+        end
+    end)
+end
+
+-- Manual safe teleport command (type in console: safe())
+getgenv().safe = teleportToTinyIsland
 
 local function applyPerformanceBoost()
     pcall(function()
@@ -64,7 +93,7 @@ local function disableGUIs()
     end)
 end
 
--- ====================== SERVER HOP ======================
+-- ====================== SERVER HOP (unchanged but improved) ======================
 local hasHopped = false
 
 local function findBestServer()
@@ -72,8 +101,7 @@ local function findBestServer()
         local goodServers = {}
         local cursor = ""
        
-        print("🔍 FULL SCANNING Muscle Legends servers...")
-        for page = 1, 40 do  -- Even more pages
+        for page = 1, 40 do
             local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
             if cursor ~= "" then url = url .. "&cursor=" .. cursor end
            
@@ -115,23 +143,22 @@ local function serverHop(reason)
     hasHopped = true
    
     print("🔄 " .. reason .. " | Avoiding " .. #getgenv().AvoidedServers .. " servers...")
-    task.wait(3.5) -- Extra long delay
+    task.wait(3.5)
    
     local bestServer = findBestServer()
    
     if bestServer then
         addToAvoidList(bestServer.id)
-        print("🎯 Found " .. bestServer.playing .. " players server → Smart Hop")
+        print("🎯 Found " .. bestServer.playing .. " players server → Hopping")
         TeleportService:TeleportToPlaceInstance(game.PlaceId, bestServer.id, player)
     else
-        print("⚠️ NO GOOD SERVER FOUND → FORCING BLIND HOP (This breaks rejoin loop)")
+        print("⚠️ Forcing BLIND hop...")
         task.wait(2)
         addToAvoidList(game.JobId)
-        TeleportService:Teleport(game.PlaceId, player)  -- Blind hop is strongest against rejoin
+        TeleportService:Teleport(game.PlaceId, player)
     end
 end
 
--- Hop trigger
 if hopEnabled then
     task.spawn(function()
         while hopEnabled and not hasHopped do
@@ -167,6 +194,8 @@ task.spawn(function()
     disableGUIs()
    
     while killAllEnabled and not hasHopped do
+        if safeIslandEnabled then task.wait(1) continue end -- Pause killing while in safe mode
+        
         local char = player.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then
             task.wait(0.6) continue
@@ -199,5 +228,6 @@ task.spawn(function()
     end
 end)
 
-print("✅ MAX ANTI-REJOIN Loaded")
-print(" → Blind hop fallback active | Scans 40 pages | Blacklist 50 servers")
+print("✅ Script Loaded with Tiny Island Safe Mode")
+print(" → Type safe() in console for instant teleport")
+print(" → Safe mode auto-repositions every 8s")
