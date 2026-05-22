@@ -1,4 +1,4 @@
--- Larp Hub - Kill All + Auto Equip + MAX ANTI-REJOIN + Underground Safe + Anti Knockback
+-- Larp Hub - Kill All + Auto Equip + MAX ANTI-REJOIN + Safe Hidden Baseplate
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -14,8 +14,8 @@ local minPlayersToHop = 7
 local targetMinPlayers = 7
 local maxPreferredPlayers = 18
 
-local undergroundSafeEnabled = true
-local antiKnockbackEnabled = true   -- ← NEW: Anti Knockback
+local hiddenSafeEnabled = true
+local antiKnockbackEnabled = true
 -- =================================================
 
 local disableAllGUIs = true
@@ -35,32 +35,33 @@ end
 
 addToAvoidList(game.JobId)
 
--- ====================== UNDERGROUND SAFE SPOT (One Time) ======================
-local undergroundCFrame = CFrame.new(120, -250, 450)
+-- ====================== HIDDEN SAFE BASEPLATE SPOT ======================
+-- New safer position (floating platform area, hard to reach)
+local safeCFrame = CFrame.new(250, 450, -850)
 
-local hasTeleportedUnderground = false
+local hasTeleportedSafe = false
 
-local function teleportUnderground()
-    if hasTeleportedUnderground then return end
+local function teleportToSafeSpot()
+    if hasTeleportedSafe then return end
     local char = player.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
-        char.HumanoidRootPart.CFrame = undergroundCFrame
-        hasTeleportedUnderground = true
-        print("🛡️ Teleported UNDER the map (One time only)")
+        char.HumanoidRootPart.CFrame = safeCFrame
+        hasTeleportedSafe = true
+        print("🛡️ Teleported to Hidden Safe Baseplate (One time only)")
     end
 end
 
 -- Teleport once after character loads
 task.spawn(function()
-    if undergroundSafeEnabled then
+    if hiddenSafeEnabled then
         player.CharacterAdded:Connect(function()
-            task.wait(1.5)
-            teleportUnderground()
+            task.wait(1.8)
+            teleportToSafeSpot()
         end)
         
         if player.Character then
-            task.wait(1.5)
-            teleportUnderground()
+            task.wait(1.8)
+            teleportToSafeSpot()
         end
     end
 end)
@@ -72,17 +73,9 @@ local function enableAntiKnockback()
             local char = player.Character
             if char then
                 local root = char:FindFirstChild("HumanoidRootPart")
-                local hum = char:FindFirstChild("Humanoid")
-                
                 if root then
-                    -- Strong anti knockback
-                    root.Velocity = Vector3.new(0, root.Velocity.Y, 0)  -- Keep only vertical velocity
+                    root.Velocity = Vector3.new(0, root.Velocity.Y, 0)
                     root.RotVelocity = Vector3.new(0, 0, 0)
-                end
-                
-                if hum then
-                    hum.PlatformStand = false
-                    hum.Sit = false
                 end
             end
             task.wait(0.1)
@@ -262,6 +255,6 @@ task.spawn(function()
     end
 end)
 
-print("✅ Script Loaded - Underground Safe + Anti Knockback")
-print(" → One-time underground teleport | Strong Anti Knockback")
-print(" → Kill All fully active")
+print("✅ Script Loaded - Hidden Safe Baseplate")
+print(" → One-time teleport to unreachable area")
+print(" → Kill All + Anti Knockback active")
