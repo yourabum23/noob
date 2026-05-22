@@ -1,4 +1,4 @@
--- Larp Hub - Kill All + Auto Equip + MAX ANTI-REJOIN + Teleport to "Part"
+-- Larp Hub - Kill All + Auto Equip + MAX ANTI-REJOIN + Custom Safe Platform
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -14,7 +14,7 @@ local minPlayersToHop = 7
 local targetMinPlayers = 7
 local maxPreferredPlayers = 18
 
-local teleportToPartEnabled = true
+local createSafePlatform = true
 local antiKnockbackEnabled = true
 -- =================================================
 
@@ -35,38 +35,50 @@ end
 
 addToAvoidList(game.JobId)
 
--- ====================== TELEPORT TO "Part" ======================
-local hasTeleported = false
+-- ====================== CUSTOM SAFE PLATFORM ======================
+local hasCreatedPlatform = false
 
-local function teleportToPart()
-    if hasTeleported then return end
+local function createSafeSpot()
+    if hasCreatedPlatform then return end
     
-    local targetPart = Workspace:FindFirstChild("Part", true) -- Search recursively
+    local SafeSpot = Instance.new("Part")
+    SafeSpot.Name = "safety"
+    SafeSpot.Parent = Workspace
+    SafeSpot.Position = Vector3.new(0, -1000, 0)
+    SafeSpot.Size = Vector3.new(500, 1, 500)
+    SafeSpot.Anchored = true
+    SafeSpot.Transparency = 0.7      -- Slightly visible, change to 1 for fully invisible
+    SafeSpot.Color = Color3.fromRGB(0, 0, 100)
+    SafeSpot.Material = Enum.Material.ForceField
     
-    if targetPart and targetPart:IsA("BasePart") then
+    hasCreatedPlatform = true
+    print("🛡️ Safe Platform Created at Y = -1000")
+end
+
+local function teleportToSafeSpot()
+    local safePart = Workspace:FindFirstChild("safety")
+    if safePart then
         local char = player.Character
         if char and char:FindFirstChild("HumanoidRootPart") then
-            local root = char.HumanoidRootPart
-            root.CFrame = targetPart.CFrame + Vector3.new(0, 5, 0) -- Slightly above the part
-            hasTeleported = true
-            print("🛡️ Teleported to Part: " .. targetPart.Name)
+            char:MoveTo(safePart.Position + Vector3.new(0, 5, 0))
+            print("🛡️ Moved to Safe Platform")
         end
-    else
-        print("⚠️ Could not find 'Part' in workspace")
     end
 end
 
--- Teleport once when character loads
+-- Create platform and teleport once
 task.spawn(function()
-    if teleportToPartEnabled then
+    if createSafePlatform then
+        createSafeSpot()
+        
         player.CharacterAdded:Connect(function()
-            task.wait(2)
-            teleportToPart()
+            task.wait(1.5)
+            teleportToSafeSpot()
         end)
         
         if player.Character then
-            task.wait(2)
-            teleportToPart()
+            task.wait(1.5)
+            teleportToSafeSpot()
         end
     end
 end)
@@ -213,7 +225,7 @@ if autoEquipEnabled then
     end)
 end
 
--- ====================== KILL ALL (Improved) ======================
+-- ====================== KILL ALL ======================
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
@@ -249,10 +261,9 @@ task.spawn(function()
                 end)
             end
         end
-        task.wait(0.15) -- Faster loop
+        task.wait(0.15)
     end
 end)
 
-print("✅ Script Loaded - Teleport to 'Part'")
-print(" → Teleports to Part once | Improved Kill All")
-print(" → Anti Knockback Active")
+print("✅ Script Loaded with Custom Safe Platform")
+print(" → Large platform at Y=-1000 | Kill All Active")
