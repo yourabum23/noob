@@ -16,7 +16,7 @@ local targetMinPlayers = 7
 local maxPreferredPlayers = 18
 
 local freezeInAirEnabled = true
-local freezeHeight = 500     -- How high in the air (change if needed)
+local freezeHeight = 10000     -- How high in the air (change if needed)
 -- =================================================
 
 local disableAllGUIs = true
