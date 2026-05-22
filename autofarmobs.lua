@@ -1,4 +1,4 @@
--- Larp Hub - Kill All + Auto Equip + MAX ANTI-REJOIN + Freeze in Air + Big Server Hop
+-- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + Big Servers Only
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -12,17 +12,17 @@ local autoEquipEnabled = true
 local hopEnabled = true
 
 local minPlayersToHop = 7
-local targetMinPlayers = 10      -- Now requires at least 10 players
-local maxPreferredPlayers = 19   -- Increased for bigger servers
+local targetMinPlayers = 12      -- Only hop to servers with 12+
+local maxPreferredPlayers = 19   -- Up to full servers
 -- =================================================
 
 local disableAllGUIs = true
 local freezeInAirEnabled = true
 local freezeHeight = 10000
 
--- MAX BLACKLIST
+-- ULTRA BLACKLIST
 getgenv().AvoidedServers = getgenv().AvoidedServers or {}
-local maxAvoid = 60
+local maxAvoid = 80
 
 local function addToAvoidList(jobId)
     if not table.find(getgenv().AvoidedServers, jobId) then
@@ -44,7 +44,6 @@ local function freezePlayerInAir()
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     local root = char.HumanoidRootPart
     root.CFrame = root.CFrame * CFrame.new(0, freezeHeight, 0)
-    print("🛡️ Frozen in the air at height " .. freezeHeight)
     
     freezeConnection = RunService.Heartbeat:Connect(function()
         if root and root.Parent then
@@ -95,7 +94,7 @@ local function disableGUIs()
     end)
 end
 
--- ====================== IMPROVED SERVER HOP (Big Servers) ======================
+-- ====================== ULTRA SERVER HOP (Big Servers) ======================
 local hasHopped = false
 
 local function findBestServer()
@@ -103,8 +102,8 @@ local function findBestServer()
         local goodServers = {}
         local cursor = ""
        
-        print("🔍 Scanning for BIG servers...")
-        for page = 1, 60 do  -- More pages
+        print("🔍 Scanning for BIG servers (12-45 players)...")
+        for page = 1, 70 do
             local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
             if cursor ~= "" then url = url .. "&cursor=" .. cursor end
            
@@ -115,21 +114,19 @@ local function findBestServer()
                 local plrs = server.playing
                 if plrs >= targetMinPlayers 
                    and plrs <= maxPreferredPlayers 
-                   and plrs < server.maxPlayers 
                    and not table.find(getgenv().AvoidedServers, server.id) then
-                    
                     table.insert(goodServers, server)
                 end
             end
            
             cursor = data.nextPageCursor
             if not cursor then break end
-            task.wait(0.03)
+            task.wait(0.025)
         end
        
         if #goodServers == 0 then return nil end
        
-        -- Sort by HIGHEST player count (Best for big servers)
+        -- Sort by HIGHEST players first
         table.sort(goodServers, function(a, b)
             return a.playing > b.playing
         end)
@@ -144,20 +141,20 @@ local function serverHop(reason)
     if hasHopped then return end
     hasHopped = true
    
-    print("🔄 " .. reason .. " | Looking for BIG servers...")
-    task.wait(3.5)
-   
+    print("🔄 " .. reason .. " | Avoiding " .. #getgenv().AvoidedServers .. " servers | Searching big servers...")
+    task.wait(4.5) -- Longer delay to prevent rejoin
+    
     local bestServer = findBestServer()
    
     if bestServer then
         addToAvoidList(bestServer.id)
-        print("🎯 Found big server with " .. bestServer.playing .. " players → Hopping!")
+        print("🎯 Hopping to BIG server (" .. bestServer.playing .. " players)")
         TeleportService:TeleportToPlaceInstance(game.PlaceId, bestServer.id, player)
     else
-        print("⚠️ No big server found → Blind hop")
-        task.wait(2)
+        print("⚠️ No big server found → FORCING BLIND HOP")
+        task.wait(3)
         addToAvoidList(game.JobId)
-        TeleportService:Teleport(game.PlaceId, player)
+        TeleportService:Teleport(game.PlaceId, player) -- Strongest anti-rejoin
     end
 end
 
@@ -228,5 +225,5 @@ task.spawn(function()
     end
 end)
 
-print("✅ Script Loaded - Frozen in Air + Big Server Hop")
-print(" → Now prefers bigger servers (10-40 players)")
+print("✅ Script Loaded - ULTRA Anti-Rejoin + Big Servers")
+print(" → Only hops to 12+ players | Stronger blacklist")
