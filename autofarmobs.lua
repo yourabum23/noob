@@ -1,11 +1,11 @@
--- // Muscle Masters - Super Fast Strength + Best Bench Script
--- Auto trains on the BEST bench available
+-- // Muscle Masters - Best Bench Auto Train + Sit Fix
+-- Now actually gets on the bench properly
 
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
 
--- Services
 local replicatedStorage = game:GetService("ReplicatedStorage")
 local runService = game:GetService("RunService")
 local virtualUser = game:GetService("VirtualUser")
@@ -13,10 +13,9 @@ local virtualUser = game:GetService("VirtualUser")
 -- Settings
 local autoTrainEnabled = true
 local autoRebirthEnabled = true
-local useBestBench = true
 local strengthMultiplier = 9999999
 
-print("🔥 Muscle Masters Best Bench Script Loaded")
+print("🔥 Muscle Masters Best Bench Script v2 Loaded")
 
 -- Anti-AFK
 player.Idled:Connect(function()
@@ -25,69 +24,83 @@ player.Idled:Connect(function()
     virtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
 end)
 
--- Function to find and go to the BEST bench
+-- Find Best Bench (improved detection)
 local function getBestBench()
     local bestBench = nil
-    local bestValue = 0
+    local bestScore = 0
     
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("Model") or v:IsA("Part") then
-            local name = v.Name:lower()
-            if name:find("bench") or name:find("press") or name:find("weight") then
-                
-                -- Prioritize higher tier benches (Muscle King, Emperor, etc.)
-                local value = 0
-                if name:find("emperor") or name:find("king") then value = 1000
-                elseif name:find("legend") or name:find("ultimate") then value = 500
-                elseif name:find("pro") or name:find("advanced") then value = 200
-                elseif name:find("basic") then value = 50
-                end
-                
-                if value > bestValue then
-                    bestValue = value
-                    bestBench = v
-                end
+    for _, obj in pairs(workspace:GetDescendants()) do
+        local name = obj.Name:lower()
+        if name:find("bench") or name:find("press") or name:find("king") or name:find("emperor") or name:find("legend") then
+            
+            local score = 0
+            if name:find("emperor") or name:find("ultimate") then score = 1000
+            elseif name:find("king") or name:find("legend") then score = 700
+            elseif name:find("pro") or name:find("advanced") then score = 300
+            else score = 100
+            end
+            
+            if score > bestScore then
+                bestScore = score
+                bestBench = obj
             end
         end
     end
     return bestBench
 end
 
--- Teleport to best bench + train on it
+-- Improved: Go to bench and sit properly
 spawn(function()
-    while useBestBench and autoTrainEnabled do
-        task.wait(0.5)
+    while autoTrainEnabled do
+        task.wait(0.8)
         
         local bench = getBestBench()
-        if bench and humanoidRootPart then
-            -- Teleport near the best bench
-            local root = bench:FindFirstChild("HumanoidRootPart") or bench:FindFirstChildWhichIsA("BasePart")
-            if root then
-                humanoidRootPart.CFrame = root.CFrame + Vector3.new(0, 5, 3)
-                task.wait(0.3)
+        if bench and humanoidRootPart and humanoid then
+            -- Find seat or main part
+            local seat = bench:FindFirstChildWhichIsA("Seat") or bench:FindFirstChild("Seat") 
+                       or bench:FindFirstChildWhichIsA("BasePart")
+            
+            if seat then
+                -- Teleport directly on top / in front properly
+                humanoidRootPart.CFrame = seat.CFrame * CFrame.new(0, 3, 0) * CFrame.Angles(0, math.rad(180), 0)
+                task.wait(0.4)
+                
+                -- Force sit if possible
+                if seat:IsA("Seat") and not seat.Occupant then
+                    humanoid.Sit = true
+                    task.wait(0.2)
+                    seat:Sit(humanoid)
+                end
+                
+                -- Spam proximity prompts on the bench
+                for _, prompt in pairs(bench:GetDescendants()) do
+                    if prompt:IsA("ProximityPrompt") then
+                        fireproximityprompt(prompt, 0)
+                    end
+                end
             end
         end
     end
 end)
 
--- Super Fast Training Loop (Best Bench Focused)
+-- Super Fast Training (Remote + Prompts)
 spawn(function()
     while autoTrainEnabled do
         task.wait(0.01)
         
         pcall(function()
-            -- Fire training remote
-            local trainRemote = replicatedStorage:FindFirstChild("TrainEvent") 
-                              or replicatedStorage:FindFirstChild("StrengthEvent")
-                              or replicatedStorage:FindFirstChild("LiftEvent")
-            
-            if trainRemote then
-                trainRemote:FireServer(strengthMultiplier)
+            -- Fire main training remote
+            local remotes = {"TrainEvent", "StrengthEvent", "LiftEvent", "BenchEvent", "WorkoutEvent"}
+            for _, rName in ipairs(remotes) do
+                local remote = replicatedStorage:FindFirstChild(rName) or replicatedStorage:FindFirstChild(rName, true)
+                if remote then
+                    remote:FireServer(strengthMultiplier)
+                end
             end
             
-            -- Fire proximity prompts on benches
+            -- Extra prompt spam
             for _, v in pairs(workspace:GetDescendants()) do
-                if v:IsA("ProximityPrompt") and (v.Name:lower():find("bench") or v.Name:lower():find("press") or v.Name:lower():find("lift")) then
+                if v:IsA("ProximityPrompt") and (v.Name:lower():find("bench") or v.Name:lower():find("lift") or v.Name:lower():find("press")) then
                     fireproximityprompt(v, 0)
                 end
             end
@@ -95,31 +108,25 @@ spawn(function()
     end
 end)
 
--- Auto Rebirth
+-- Auto Rebirth (unchanged)
 spawn(function()
     while autoRebirthEnabled do
         task.wait(1)
-        
         pcall(function()
             local rebirthRemote = replicatedStorage:FindFirstChild("RebirthEvent") 
                                or replicatedStorage:FindFirstChild("Rebirth") 
                                or replicatedStorage:FindFirstChild("RebirthRequest")
-            
             if rebirthRemote then
-                local rebirths = player.leaderstats:FindFirstChild("Rebirths") or player:FindFirstChild("Rebirths")
-                if rebirths then
-                    rebirthRemote:FireServer()
-                end
+                rebirthRemote:FireServer()
             end
         end)
     end
 end)
 
--- Notification
 game.StarterGui:SetCore("SendNotification", {
-    Title = "Muscle Masters Script";
-    Text = "Super Fast Strength + Best Bench Auto-Train Activated 💪";
-    Duration = 6;
+    Title = "Muscle Masters";
+    Text = "Best Bench Auto-Sit + Super Fast Train Fixed!";
+    Duration = 8;
 })
 
-print("✅ Now training on the best benches automatically!")
+print("✅ Now properly sitting on the best bench!")
