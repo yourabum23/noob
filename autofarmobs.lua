@@ -1,4 +1,4 @@
--- Larp Hub - Kill All + Auto Equip + MAX ANTI-REJOIN + Freeze in Air
+-- Larp Hub - Kill All + Auto Equip + MAX ANTI-REJOIN + Freeze in Air + Big Server Hop
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -12,14 +12,13 @@ local autoEquipEnabled = true
 local hopEnabled = true
 
 local minPlayersToHop = 7
-local targetMinPlayers = 7
-local maxPreferredPlayers = 18
-
-local freezeInAirEnabled = true
-local freezeHeight = 10000     -- How high in the air (change if needed)
+local targetMinPlayers = 10      -- Now requires at least 10 players
+local maxPreferredPlayers = 19   -- Increased for bigger servers
 -- =================================================
 
 local disableAllGUIs = true
+local freezeInAirEnabled = true
+local freezeHeight = 10000
 
 -- MAX BLACKLIST
 getgenv().AvoidedServers = getgenv().AvoidedServers or {}
@@ -41,38 +40,28 @@ local freezeConnection = nil
 
 local function freezePlayerInAir()
     if not freezeInAirEnabled then return end
-    
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    
     local root = char.HumanoidRootPart
-    
-    -- Move high up once
     root.CFrame = root.CFrame * CFrame.new(0, freezeHeight, 0)
-    
     print("🛡️ Frozen in the air at height " .. freezeHeight)
     
-    -- Freeze position every frame
     freezeConnection = RunService.Heartbeat:Connect(function()
         if root and root.Parent then
             root.Velocity = Vector3.new(0, 0, 0)
             root.RotVelocity = Vector3.new(0, 0, 0)
-            
-            -- Constantly lock position
             local currentPos = root.Position
             root.CFrame = CFrame.new(currentPos.X, freezeHeight, currentPos.Z)
         end
     end)
 end
 
--- Activate freeze when character loads
 task.spawn(function()
     if freezeInAirEnabled then
         player.CharacterAdded:Connect(function()
             task.wait(1.5)
             freezePlayerInAir()
         end)
-        
         if player.Character then
             task.wait(1.5)
             freezePlayerInAir()
@@ -106,7 +95,7 @@ local function disableGUIs()
     end)
 end
 
--- ====================== SERVER HOP ======================
+-- ====================== IMPROVED SERVER HOP (Big Servers) ======================
 local hasHopped = false
 
 local function findBestServer()
@@ -114,7 +103,8 @@ local function findBestServer()
         local goodServers = {}
         local cursor = ""
        
-        for page = 1, 50 do
+        print("🔍 Scanning for BIG servers...")
+        for page = 1, 60 do  -- More pages
             local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
             if cursor ~= "" then url = url .. "&cursor=" .. cursor end
            
@@ -123,27 +113,26 @@ local function findBestServer()
            
             for _, server in ipairs(data.data) do
                 local plrs = server.playing
-                if plrs >= targetMinPlayers and plrs <= maxPreferredPlayers 
+                if plrs >= targetMinPlayers 
+                   and plrs <= maxPreferredPlayers 
                    and plrs < server.maxPlayers 
                    and not table.find(getgenv().AvoidedServers, server.id) then
+                    
                     table.insert(goodServers, server)
                 end
             end
            
             cursor = data.nextPageCursor
             if not cursor then break end
-            task.wait(0.04)
+            task.wait(0.03)
         end
        
         if #goodServers == 0 then return nil end
        
-        table.sort(goodServers, function(a, b) return a.playing > b.playing end)
-       
-        local top = math.min(20, #goodServers)
-        for i = top, 2, -1 do
-            local j = math.random(i)
-            goodServers[i], goodServers[j] = goodServers[j], goodServers[i]
-        end
+        -- Sort by HIGHEST player count (Best for big servers)
+        table.sort(goodServers, function(a, b)
+            return a.playing > b.playing
+        end)
        
         return goodServers[1]
     end)
@@ -155,18 +144,18 @@ local function serverHop(reason)
     if hasHopped then return end
     hasHopped = true
    
-    print("🔄 " .. reason .. " | Avoiding " .. #getgenv().AvoidedServers .. " servers...")
-    task.wait(4)
+    print("🔄 " .. reason .. " | Looking for BIG servers...")
+    task.wait(3.5)
    
     local bestServer = findBestServer()
    
     if bestServer then
         addToAvoidList(bestServer.id)
-        print("🎯 Found " .. bestServer.playing .. " players → Hopping")
+        print("🎯 Found big server with " .. bestServer.playing .. " players → Hopping!")
         TeleportService:TeleportToPlaceInstance(game.PlaceId, bestServer.id, player)
     else
-        print("⚠️ Forcing BLIND hop...")
-        task.wait(2.5)
+        print("⚠️ No big server found → Blind hop")
+        task.wait(2)
         addToAvoidList(game.JobId)
         TeleportService:Teleport(game.PlaceId, player)
     end
@@ -214,9 +203,7 @@ task.spawn(function()
        
         local rightHand = char:FindFirstChild("RightHand")
         local leftHand = char:FindFirstChild("LeftHand")
-        if not (rightHand and leftHand) then 
-            task.wait(0.4) continue 
-        end
+        if not (rightHand and leftHand) then task.wait(0.4) continue end
        
         for _, target in ipairs(game.Players:GetPlayers()) do
             if target == player then continue end
@@ -241,5 +228,5 @@ task.spawn(function()
     end
 end)
 
-print("✅ Script Loaded - Frozen in Air")
-print(" → You are frozen high in the sky | Kill All Active")
+print("✅ Script Loaded - Frozen in Air + Big Server Hop")
+print(" → Now prefers bigger servers (10-40 players)")
