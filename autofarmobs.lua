@@ -1,9 +1,10 @@
--- Larp Hub - Kill All + Auto Equip + MAX ANTI-REJOIN + Custom Safe Platform
+-- Larp Hub - Kill All + Auto Equip + MAX ANTI-REJOIN + Freeze in Air
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
 -- ==================== SETTINGS ====================
 local killAllEnabled = true
@@ -14,8 +15,8 @@ local minPlayersToHop = 7
 local targetMinPlayers = 7
 local maxPreferredPlayers = 18
 
-local createSafePlatform = true
-local antiKnockbackEnabled = true
+local freezeInAirEnabled = true
+local freezeHeight = 500     -- How high in the air (change if needed)
 -- =================================================
 
 local disableAllGUIs = true
@@ -35,74 +36,49 @@ end
 
 addToAvoidList(game.JobId)
 
--- ====================== CUSTOM SAFE PLATFORM ======================
-local hasCreatedPlatform = false
+-- ====================== FREEZE IN AIR ======================
+local freezeConnection = nil
 
-local function createSafeSpot()
-    if hasCreatedPlatform then return end
+local function freezePlayerInAir()
+    if not freezeInAirEnabled then return end
     
-    local SafeSpot = Instance.new("Part")
-    SafeSpot.Name = "safety"
-    SafeSpot.Parent = Workspace
-    SafeSpot.Position = Vector3.new(0, -1000, 0)
-    SafeSpot.Size = Vector3.new(500, 1, 500)
-    SafeSpot.Anchored = true
-    SafeSpot.Transparency = 0.7      -- Slightly visible, change to 1 for fully invisible
-    SafeSpot.Color = Color3.fromRGB(0, 0, 100)
-    SafeSpot.Material = Enum.Material.ForceField
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     
-    hasCreatedPlatform = true
-    print("🛡️ Safe Platform Created at Y = -1000")
-end
-
-local function teleportToSafeSpot()
-    local safePart = Workspace:FindFirstChild("safety")
-    if safePart then
-        local char = player.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            char:MoveTo(safePart.Position + Vector3.new(0, 5, 0))
-            print("🛡️ Moved to Safe Platform")
-        end
-    end
-end
-
--- Create platform and teleport once
-task.spawn(function()
-    if createSafePlatform then
-        createSafeSpot()
-        
-        player.CharacterAdded:Connect(function()
-            task.wait(1.5)
-            teleportToSafeSpot()
-        end)
-        
-        if player.Character then
-            task.wait(1.5)
-            teleportToSafeSpot()
-        end
-    end
-end)
-
--- ====================== ANTI KNOCKBACK ======================
-local function enableAntiKnockback()
-    task.spawn(function()
-        while antiKnockbackEnabled do
-            local char = player.Character
-            if char then
-                local root = char:FindFirstChild("HumanoidRootPart")
-                if root then
-                    root.Velocity = Vector3.new(0, root.Velocity.Y, 0)
-                    root.RotVelocity = Vector3.new(0, 0, 0)
-                end
-            end
-            task.wait(0.1)
+    local root = char.HumanoidRootPart
+    
+    -- Move high up once
+    root.CFrame = root.CFrame * CFrame.new(0, freezeHeight, 0)
+    
+    print("🛡️ Frozen in the air at height " .. freezeHeight)
+    
+    -- Freeze position every frame
+    freezeConnection = RunService.Heartbeat:Connect(function()
+        if root and root.Parent then
+            root.Velocity = Vector3.new(0, 0, 0)
+            root.RotVelocity = Vector3.new(0, 0, 0)
+            
+            -- Constantly lock position
+            local currentPos = root.Position
+            root.CFrame = CFrame.new(currentPos.X, freezeHeight, currentPos.Z)
         end
     end)
 end
 
-if antiKnockbackEnabled then
-    enableAntiKnockback()
-end
+-- Activate freeze when character loads
+task.spawn(function()
+    if freezeInAirEnabled then
+        player.CharacterAdded:Connect(function()
+            task.wait(1.5)
+            freezePlayerInAir()
+        end)
+        
+        if player.Character then
+            task.wait(1.5)
+            freezePlayerInAir()
+        end
+    end
+end)
 
 local function applyPerformanceBoost()
     pcall(function()
@@ -265,5 +241,5 @@ task.spawn(function()
     end
 end)
 
-print("✅ Script Loaded with Custom Safe Platform")
-print(" → Large platform at Y=-1000 | Kill All Active")
+print("✅ Script Loaded - Frozen in Air")
+print(" → You are frozen high in the sky | Kill All Active")
