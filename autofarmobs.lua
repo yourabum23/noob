@@ -1,4 +1,4 @@
--- Larp Hub - Kill All + Auto Equip + MAX ANTI-REJOIN + Smart Tiny Island Safe
+-- Larp Hub - Kill All + Auto Equip + MAX ANTI-REJOIN + Underground Safe + Anti Knockback
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -14,8 +14,8 @@ local minPlayersToHop = 7
 local targetMinPlayers = 7
 local maxPreferredPlayers = 18
 
-local safeIslandEnabled = true      -- Set to false if you don't want auto safe
-local safeOnlyWhenLowPlayers = true -- New: Only go safe when players < 10
+local undergroundSafeEnabled = true
+local antiKnockbackEnabled = true   -- ← NEW: Anti Knockback
 -- =================================================
 
 local disableAllGUIs = true
@@ -35,36 +35,65 @@ end
 
 addToAvoidList(game.JobId)
 
--- ====================== TINY ISLAND SAFE ======================
-local tinyIslandCFrame = CFrame.new(-4.25, 221, 1963.6)
+-- ====================== UNDERGROUND SAFE SPOT (One Time) ======================
+local undergroundCFrame = CFrame.new(120, -250, 450)
 
-local function teleportToTinyIsland()
+local hasTeleportedUnderground = false
+
+local function teleportUnderground()
+    if hasTeleportedUnderground then return end
     local char = player.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
-        char.HumanoidRootPart.CFrame = tinyIslandCFrame
-        print("🛡️ Teleported to Tiny Island Safe Spot!")
+        char.HumanoidRootPart.CFrame = undergroundCFrame
+        hasTeleportedUnderground = true
+        print("🛡️ Teleported UNDER the map (One time only)")
     end
 end
 
--- Smart Safe Mode
-if safeIslandEnabled then
+-- Teleport once after character loads
+task.spawn(function()
+    if undergroundSafeEnabled then
+        player.CharacterAdded:Connect(function()
+            task.wait(1.5)
+            teleportUnderground()
+        end)
+        
+        if player.Character then
+            task.wait(1.5)
+            teleportUnderground()
+        end
+    end
+end)
+
+-- ====================== ANTI KNOCKBACK ======================
+local function enableAntiKnockback()
     task.spawn(function()
-        while safeIslandEnabled do
-            local currentPlayers = #game.Players:GetPlayers()
-            
-            if safeOnlyWhenLowPlayers and currentPlayers >= 10 then
-                task.wait(5)
-                continue
+        while antiKnockbackEnabled do
+            local char = player.Character
+            if char then
+                local root = char:FindFirstChild("HumanoidRootPart")
+                local hum = char:FindFirstChild("Humanoid")
+                
+                if root then
+                    -- Strong anti knockback
+                    root.Velocity = Vector3.new(0, root.Velocity.Y, 0)  -- Keep only vertical velocity
+                    root.RotVelocity = Vector3.new(0, 0, 0)
+                end
+                
+                if hum then
+                    hum.PlatformStand = false
+                    hum.Sit = false
+                end
             end
-            
-            teleportToTinyIsland()
-            task.wait(6)
+            task.wait(0.1)
         end
     end)
 end
 
-getgenv().safe = teleportToTinyIsland
-getgenv().unsafeme = function() safeIslandEnabled = false; print("Safe mode disabled") end
+if antiKnockbackEnabled then
+    enableAntiKnockback()
+    print("🛡️ Anti Knockback Activated")
+end
 
 local function applyPerformanceBoost()
     pcall(function()
@@ -193,7 +222,7 @@ if autoEquipEnabled then
     end)
 end
 
--- ====================== KILL ALL (Now Works With Safe Mode) ======================
+-- ====================== KILL ALL ======================
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
@@ -233,7 +262,6 @@ task.spawn(function()
     end
 end)
 
-print("✅ FIXED - Kill All + Smart Safe Mode")
-print(" → Kill All is always active")
-print(" → Safe only when low players (toggle with safeOnlyWhenLowPlayers)")
-print(" → Type safe() or unsafeme() in console")
+print("✅ Script Loaded - Underground Safe + Anti Knockback")
+print(" → One-time underground teleport | Strong Anti Knockback")
+print(" → Kill All fully active")
