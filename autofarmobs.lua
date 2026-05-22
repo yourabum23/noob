@@ -1,4 +1,4 @@
--- Larp Hub - Kill All + Auto Equip + FULL SCAN Anti-Rejoin (7-18 Players Preferred)
+-- Larp Hub - Kill All + Auto Equip + MAX ANTI-REJOIN (Blind Hop Focus)
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -12,14 +12,14 @@ local hopEnabled = true
 
 local minPlayersToHop = 10
 local targetMinPlayers = 7
-local maxPreferredPlayers = 18   -- New: Prefer up to 18 players
+local maxPreferredPlayers = 18
 -- =================================================
 
 local disableAllGUIs = true
 
--- ULTRA PERSISTENT BLACKLIST
+-- MAX BLACKLIST
 getgenv().AvoidedServers = getgenv().AvoidedServers or {}
-local maxAvoid = 40
+local maxAvoid = 50
 
 local function addToAvoidList(jobId)
     if not table.find(getgenv().AvoidedServers, jobId) then
@@ -72,8 +72,8 @@ local function findBestServer()
         local goodServers = {}
         local cursor = ""
        
-        print("🔍 Scanning ALL public servers...")
-        for page = 1, 30 do  -- Full aggressive scan
+        print("🔍 FULL SCANNING Muscle Legends servers...")
+        for page = 1, 40 do  -- Even more pages
             local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
             if cursor ~= "" then url = url .. "&cursor=" .. cursor end
            
@@ -82,32 +82,23 @@ local function findBestServer()
            
             for _, server in ipairs(data.data) do
                 local plrs = server.playing
-                if plrs >= targetMinPlayers 
-                   and plrs <= maxPreferredPlayers 
+                if plrs >= targetMinPlayers and plrs <= maxPreferredPlayers 
                    and plrs < server.maxPlayers 
                    and not table.find(getgenv().AvoidedServers, server.id) then
-                    
                     table.insert(goodServers, server)
                 end
             end
            
             cursor = data.nextPageCursor
             if not cursor then break end
-            task.wait(0.08)
+            task.wait(0.05)
         end
        
-        if #goodServers == 0 then 
-            print("⚠️ No 7-18 server found, falling back...")
-            return nil 
-        end
+        if #goodServers == 0 then return nil end
        
-        -- Sort by HIGHEST player count first (best for you)
-        table.sort(goodServers, function(a, b)
-            return a.playing > b.playing
-        end)
+        table.sort(goodServers, function(a, b) return a.playing > b.playing end)
        
-        -- Extra shuffle on top 10 for variety
-        local top = math.min(10, #goodServers)
+        local top = math.min(15, #goodServers)
         for i = top, 2, -1 do
             local j = math.random(i)
             goodServers[i], goodServers[j] = goodServers[j], goodServers[i]
@@ -123,20 +114,20 @@ local function serverHop(reason)
     if hasHopped then return end
     hasHopped = true
    
-    print("🔄 " .. reason .. " | Avoiding " .. #getgenv().AvoidedServers .. " servers | Full scan active...")
-    task.wait(3) -- Longer delay to break Roblox's rejoin pattern
+    print("🔄 " .. reason .. " | Avoiding " .. #getgenv().AvoidedServers .. " servers...")
+    task.wait(3.5) -- Extra long delay
    
     local bestServer = findBestServer()
    
     if bestServer then
         addToAvoidList(bestServer.id)
-        print("🎯 Best server found: " .. bestServer.playing .. "/20 players → Hopping!")
+        print("🎯 Found " .. bestServer.playing .. " players server → Smart Hop")
         TeleportService:TeleportToPlaceInstance(game.PlaceId, bestServer.id, player)
     else
-        print("⚠️ No ideal server → Blind random hop with max avoidance")
+        print("⚠️ NO GOOD SERVER FOUND → FORCING BLIND HOP (This breaks rejoin loop)")
         task.wait(2)
         addToAvoidList(game.JobId)
-        TeleportService:Teleport(game.PlaceId, player)
+        TeleportService:Teleport(game.PlaceId, player)  -- Blind hop is strongest against rejoin
     end
 end
 
@@ -146,10 +137,10 @@ if hopEnabled then
         while hopEnabled and not hasHopped do
             local current = #game.Players:GetPlayers()
             if current < minPlayersToHop then
-                serverHop("Player count dropped to " .. current .. " (< 7)")
+                serverHop("Player count dropped to " .. current)
                 break
             end
-            task.wait(1.8)
+            task.wait(2)
         end
     end)
 end
@@ -208,5 +199,5 @@ task.spawn(function()
     end
 end)
 
-print("✅ Loaded - FULL SCAN 7-18 Players + Max Anti-Rejoin")
-print(" → Prefers highest players (7-18) | Blacklist: " .. maxAvoid .. " servers")
+print("✅ MAX ANTI-REJOIN Loaded")
+print(" → Blind hop fallback active | Scans 40 pages | Blacklist 50 servers")
