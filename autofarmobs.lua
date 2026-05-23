@@ -12,7 +12,7 @@ local hopEnabled = true
 local godmodeEnabled = true
 
 -- STRICT 15+ ONLY
-local minPlayersToHop = 15
+local minPlayersToHop = 6
 local targetMinPlayers = 15
 local maxPreferredPlayers = 20
 
