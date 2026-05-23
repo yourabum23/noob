@@ -38,11 +38,10 @@ local function addToAvoidList(jobId)
 end
 addToAvoidList(game.JobId)
 
--- ====================== ULTRA GODMODE v2 (300T ~ 1000T+ Protection) ======================
+-- ====================== ULTRA GODMODE v2 ======================
 local function enableGodmode()
     if not godmodeEnabled then return end
     
-    -- Main fast protection loop
     task.spawn(function()
         while godmodeEnabled do
             local char = player.Character
@@ -54,8 +53,6 @@ local function enableGodmode()
                     hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
                     hum.PlatformStand = false
                     hum.Sit = false
-                    hum.JumpPower = 50
-                    hum.WalkSpeed = hum.WalkSpeed -- Reset any speed changes
                 end
 
                 local root = char:FindFirstChild("HumanoidRootPart")
@@ -64,11 +61,10 @@ local function enableGodmode()
                     root.RotVelocity = Vector3.zero
                 end
             end
-            task.wait(0.008) -- Extremely fast
+            task.wait(0.008)
         end
     end)
 
-    -- Heartbeat protection (most important layer)
     local hbConn = RunService.Heartbeat:Connect(function()
         local char = player.Character
         if char then
@@ -79,7 +75,6 @@ local function enableGodmode()
         end
     end)
 
-    -- Character respawn protection
     player.CharacterAdded:Connect(function(char)
         task.wait(0.2)
         local hum = char:WaitForChild("Humanoid", 5)
@@ -88,32 +83,31 @@ local function enableGodmode()
             hum.Health = math.huge
         end
     end)
-
-    -- Final safety net
-    task.spawn(function()
-        while godmodeEnabled do
-            pcall(function()
-                local char = player.Character
-                if char and char:FindFirstChild("Humanoid") then
-                    char.Humanoid.Health = math.huge
-                end
-            end)
-            task.wait(0.1)
-        end
-    end)
 end
 
--- ====================== FREEZE IN AIR ======================
+-- ====================== FIXED FREEZE IN AIR (No more floating) ======================
 local freezeConnection = nil
+
+local function stopFreeze()
+    if freezeConnection then
+        freezeConnection:Disconnect()
+        freezeConnection = nil
+    end
+end
+
 local function freezePlayerInAir()
-    if not freezeInAirEnabled then return end
+    if not freezeInAirEnabled then 
+        stopFreeze()
+        return 
+    end
+    
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
- 
+
     local root = char.HumanoidRootPart
     root.CFrame = root.CFrame * CFrame.new(0, freezeHeight, 0)
- 
-    if freezeConnection then freezeConnection:Disconnect() end
+
+    stopFreeze() -- Clean previous connection
     freezeConnection = RunService.Heartbeat:Connect(function()
         if root and root.Parent then
             root.Velocity = Vector3.new(0, 0, 0)
@@ -124,13 +118,19 @@ local function freezePlayerInAir()
     end)
 end
 
+-- Properly handle freeze on/off
 task.spawn(function()
     if freezeInAirEnabled then
         player.CharacterAdded:Connect(function()
             task.wait(1.8)
             freezePlayerInAir()
         end)
-        if player.Character then task.wait(1.8) freezePlayerInAir() end
+        if player.Character then 
+            task.wait(1.8) 
+            freezePlayerInAir() 
+        end
+    else
+        stopFreeze() -- Force stop if disabled
     end
 end)
 
@@ -325,4 +325,4 @@ task.spawn(function()
     end
 end)
 
-print("✅ ULTRA GODMODE v2 Loaded | You should be unkillable even at 1000T+ strength")
+print("✅ FIXED - No more floating | ULTRA GODMODE Active")
