@@ -6,9 +6,9 @@ local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
 
 -- ==================== SETTINGS ====================
-local killAllEnabled = true
-local autoEquipEnabled = true
-local hopEnabled = true
+local killAllEnabled = false
+local autoEquipEnabled = false
+local hopEnabled = false
 local godmodeEnabled = true
 
 -- STRICT 15+ ONLY
@@ -20,8 +20,8 @@ local scanPages = 350
 local hopDelay = 4
 
 -- =================================================
-local disableAllGUIs = true
-local freezeInAirEnabled = true
+local disableAllGUIs = false
+local freezeInAirEnabled = false
 local freezeHeight = 10000
 
 -- ULTRA BLACKLIST
