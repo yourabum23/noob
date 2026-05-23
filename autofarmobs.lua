@@ -10,12 +10,12 @@ local killAllEnabled = false
 local autoEquipEnabled = false
 local hopEnabled = false
 local godmodeEnabled = true
+local performanceBoostEnabled = false
 
 -- STRICT 15+ ONLY
 local minPlayersToHop = 6
 local targetMinPlayers = 15
 local maxPreferredPlayers = 20
-
 local scanPages = 350
 local hopDelay = 4
 
@@ -68,10 +68,10 @@ local function freezePlayerInAir()
     if not freezeInAirEnabled then return end
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-   
+  
     local root = char.HumanoidRootPart
     root.CFrame = root.CFrame * CFrame.new(0, freezeHeight, 0)
-   
+  
     if freezeConnection then freezeConnection:Disconnect() end
     freezeConnection = RunService.Heartbeat:Connect(function()
         if root and root.Parent then
@@ -95,6 +95,7 @@ end)
 
 -- ====================== PERFORMANCE ======================
 local function applyPerformanceBoost()
+    if not performanceBoostEnabled then return end
     pcall(function()
         Lighting.GlobalShadows = false
         Lighting.Brightness = 1
@@ -127,55 +128,53 @@ local function findBestServer()
     local success, result = pcall(function()
         local goodServers = {}
         local cursor = ""
-        
+       
         print("🔍 Scanning for STRICT 15-20 player servers...")
-
         for page = 1, scanPages do
             local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
-            if cursor and cursor ~= "" then 
-                url = url .. "&cursor=" .. cursor 
+            if cursor and cursor ~= "" then
+                url = url .. "&cursor=" .. cursor
             end
-            
+           
             local response = HttpService:GetAsync(url)
             local data = HttpService:JSONDecode(response)
-            
+           
             for _, server in ipairs(data.data or {}) do
                 local plrs = server.playing or 0
                 if plrs >= targetMinPlayers and plrs <= maxPreferredPlayers
                    and not table.find(getgenv().AvoidedServers, server.id)
                    and server.id ~= game.JobId then
-                   
+                  
                     table.insert(goodServers, {
                         id = server.id,
                         playing = plrs
                     })
                 end
             end
-            
+           
             cursor = data.nextPageCursor
             if not cursor then break end
             task.wait(0.01)
         end
-
         if #goodServers == 0 then return nil end
         table.sort(goodServers, function(a, b) return a.playing > b.playing end)
-        
+       
         print("✅ Found " .. #goodServers .. " valid 15+ servers | Best: " .. goodServers[1].playing .. "/20")
         return goodServers[1]
     end)
-    
+   
     return success and result or nil
 end
 
 local function serverHop(reason)
     if hasHopped then return end
     hasHopped = true
-    
+   
     print("🔄 " .. reason .. " | Avoiding " .. #getgenv().AvoidedServers .. " servers")
     task.wait(hopDelay)
-    
+   
     local bestServer = findBestServer()
-    
+   
     if bestServer then
         addToAvoidList(bestServer.id)
         print("🎯 Hopping to " .. bestServer.playing .. "/20 player server")
@@ -234,43 +233,43 @@ if autoEquipEnabled then
 end
 
 task.spawn(function()
-    applyPerformanceBoost()
+    applyPerformanceBoost()   -- Now respects the toggle
     disableGUIs()
     enableGodmode()
-    
+   
     while killAllEnabled and not hasHopped do
         local char = player.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then 
-            task.wait(0.5) 
-            continue 
+        if not char or not char:FindFirstChild("HumanoidRootPart") then
+            task.wait(0.5)
+            continue
         end
-        
+       
         local rightHand = char:FindFirstChild("RightHand")
         local leftHand = char:FindFirstChild("LeftHand")
-        if not (rightHand and leftHand) then 
-            task.wait(0.4) 
-            continue 
+        if not (rightHand and leftHand) then
+            task.wait(0.4)
+            continue
         end
-
+        
         for _, target in ipairs(game.Players:GetPlayers()) do
             if target == player then continue end
-            
-            -- FIXED: Proper friend check
+           
+            -- Proper friend check
             local isFriend = false
             pcall(function()
                 isFriend = player:IsFriendsWith(target.UserId)
             end)
-            
+           
             if isFriend then
-                continue  -- Skip friends
+                continue -- Skip friends
             end
-
+            
             local tChar = target.Character
             if not tChar then continue end
-            
+           
             local tRoot = tChar:FindFirstChild("HumanoidRootPart")
             local tHum = tChar:FindFirstChild("Humanoid")
-            
+           
             if tRoot and tHum and tHum.Health > 0 then
                 pcall(function()
                     firetouchinterest(rightHand, tRoot, 1)
@@ -278,7 +277,7 @@ task.spawn(function()
                     task.wait(0.008)
                     firetouchinterest(rightHand, tRoot, 0)
                     firetouchinterest(leftHand, tRoot, 0)
-                    
+                   
                     player.muscleEvent:FireServer("punch", "rightHand")
                     player.muscleEvent:FireServer("punch", "leftHand")
                 end)
@@ -288,4 +287,4 @@ task.spawn(function()
     end
 end)
 
-print("✅ FIXED Script Loaded | Killing Everyone Except Roblox Friends")
+print("✅ Script Loaded | Performance Boost Toggle Added")
