@@ -1,4 +1,4 @@
--- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + STRICT 15-20 + ULTRA GODMODE v2 + AUTO FRIENDS
+-- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + STRICT 15-20 + ULTRA GODMODE + AUTO FRIENDS
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -38,10 +38,11 @@ local function addToAvoidList(jobId)
 end
 addToAvoidList(game.JobId)
 
--- ====================== ULTRA GODMODE v2 ======================
+-- ====================== FIXED ULTRA GODMODE (No more floating/jump issues) ======================
 local function enableGodmode()
     if not godmodeEnabled then return end
     
+    -- Main protection loop (Health only)
     task.spawn(function()
         while godmodeEnabled do
             local char = player.Character
@@ -54,29 +55,36 @@ local function enableGodmode()
                     hum.PlatformStand = false
                     hum.Sit = false
                 end
-
-                local root = char:FindFirstChild("HumanoidRootPart")
-                if root then
-                    root.Velocity = Vector3.new(0, math.max(5, root.Velocity.Y * 0.15), 0)
-                    root.RotVelocity = Vector3.zero
-                end
             end
-            task.wait(0.008)
+            task.wait(0.01)
         end
     end)
 
+    -- Smart Anti-Knockback (Only reduces strong hits, doesn't break jumping/walking)
     local hbConn = RunService.Heartbeat:Connect(function()
         local char = player.Character
-        if char then
-            local hum = char:FindFirstChild("Humanoid")
-            if hum then
-                hum.Health = math.huge
+        if not char then return end
+        
+        local hum = char:FindFirstChild("Humanoid")
+        local root = char:FindFirstChild("HumanoidRootPart")
+        
+        if hum then
+            hum.Health = math.huge
+        end
+        
+        if root then
+            local vel = root.Velocity
+            -- Only reduce strong horizontal knockback (from punches), allow normal jump & movement
+            if math.abs(vel.X) > 30 or math.abs(vel.Z) > 30 then
+                root.Velocity = Vector3.new(vel.X * 0.25, vel.Y, vel.Z * 0.25)
             end
+            root.RotVelocity = Vector3.zero
         end
     end)
 
+    -- Respawn protection
     player.CharacterAdded:Connect(function(char)
-        task.wait(0.2)
+        task.wait(0.3)
         local hum = char:WaitForChild("Humanoid", 5)
         if hum then
             hum.MaxHealth = math.huge
@@ -85,7 +93,7 @@ local function enableGodmode()
     end)
 end
 
--- ====================== FIXED FREEZE IN AIR (No more floating) ======================
+-- ====================== FIXED FREEZE IN AIR ======================
 local freezeConnection = nil
 
 local function stopFreeze()
@@ -107,7 +115,7 @@ local function freezePlayerInAir()
     local root = char.HumanoidRootPart
     root.CFrame = root.CFrame * CFrame.new(0, freezeHeight, 0)
 
-    stopFreeze() -- Clean previous connection
+    stopFreeze()
     freezeConnection = RunService.Heartbeat:Connect(function()
         if root and root.Parent then
             root.Velocity = Vector3.new(0, 0, 0)
@@ -118,7 +126,6 @@ local function freezePlayerInAir()
     end)
 end
 
--- Properly handle freeze on/off
 task.spawn(function()
     if freezeInAirEnabled then
         player.CharacterAdded:Connect(function()
@@ -130,7 +137,7 @@ task.spawn(function()
             freezePlayerInAir() 
         end
     else
-        stopFreeze() -- Force stop if disabled
+        stopFreeze()
     end
 end)
 
@@ -325,4 +332,4 @@ task.spawn(function()
     end
 end)
 
-print("✅ FIXED - No more floating | ULTRA GODMODE Active")
+print("✅ FIXED - Jumping & Walking should now work normally")
