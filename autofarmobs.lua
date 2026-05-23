@@ -1,4 +1,4 @@
--- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + STRICT 15-20 SERVERS
+-- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + STRICT 15-20 + GODMODE
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -9,13 +9,14 @@ local RunService = game:GetService("RunService")
 local killAllEnabled = true
 local autoEquipEnabled = true
 local hopEnabled = true
+local godmodeEnabled = true        -- <--- NEW: Invincibility
 
--- STRICT 15+ ONLY (No servers under 15 allowed)
-local minPlayersToHop = 15          -- Will hop instantly if below 15
-local targetMinPlayers = 15         -- Minimum acceptable
-local maxPreferredPlayers = 20      -- Max 20 players
+-- STRICT 15+ ONLY
+local minPlayersToHop = 15
+local targetMinPlayers = 15
+local maxPreferredPlayers = 20
 
-local scanPages = 350               -- Deeper scan for high-pop servers
+local scanPages = 350
 local hopDelay = 4
 
 -- =================================================
@@ -36,6 +37,32 @@ local function addToAvoidList(jobId)
     end
 end
 addToAvoidList(game.JobId)
+
+-- ====================== GODMODE (No one can kill you) ======================
+local function enableGodmode()
+    if not godmodeEnabled then return end
+    task.spawn(function()
+        while godmodeEnabled do
+            local char = player.Character
+            if char then
+                local hum = char:FindFirstChild("Humanoid")
+                if hum then
+                    hum.MaxHealth = math.huge
+                    hum.Health = math.huge
+                    -- Extra protection
+                    hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+                end
+                
+                -- Prevent knockback / ragdoll
+                local root = char:FindFirstChild("HumanoidRootPart")
+                if root then
+                    root.Velocity = Vector3.new(0, root.Velocity.Y, 0)
+                end
+            end
+            task.wait(0.05)
+        end
+    end)
+end
 
 -- ====================== FREEZE IN AIR ======================
 local freezeConnection = nil
@@ -133,7 +160,6 @@ local function findBestServer()
         end
 
         if #goodServers == 0 then return nil end
-        
         table.sort(goodServers, function(a, b) return a.playing > b.playing end)
         
         print("✅ Found " .. #goodServers .. " valid 15+ servers | Best: " .. goodServers[1].playing .. "/20")
@@ -164,7 +190,7 @@ local function serverHop(reason)
     end
 end
 
--- ====================== STRICT POST-JOIN CHECK ======================
+-- ====================== POST-JOIN CHECK ======================
 task.spawn(function()
     task.wait(8)
     while hopEnabled do
@@ -179,7 +205,7 @@ task.spawn(function()
     end
 end)
 
--- Auto Hop Logic (Very Strict)
+-- Auto Hop Logic
 if hopEnabled then
     task.spawn(function()
         while hopEnabled and not hasHopped do
@@ -212,6 +238,7 @@ end
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
+    enableGodmode()   -- Activate Godmode
     
     while killAllEnabled and not hasHopped do
         local char = player.Character
@@ -252,4 +279,4 @@ task.spawn(function()
     end
 end)
 
-print("✅ STRICT 15-20 Player Script Loaded | Will NEVER stay in servers under 15 players")
+print("✅ STRICT 15-20 + GODMODE Loaded | You are now unkillable")
