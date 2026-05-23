@@ -1,4 +1,4 @@
--- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + 7-18 Players Only
+-- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + 7-18 Players (FIXED)
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -10,12 +10,12 @@ local killAllEnabled = true
 local autoEquipEnabled = true
 local hopEnabled = true
 
-local minPlayersToHop = 6          -- Hop if below this
-local targetMinPlayers = 7         -- Minimum players
-local maxPreferredPlayers = 18     -- Maximum players (changed to 18)
+local minPlayersToHop = 6
+local targetMinPlayers = 8      -- Raised slightly
+local maxPreferredPlayers = 18
 
-local scanPages = 150              -- Deep scan
-local hopDelay = 5
+local scanPages = 200           -- Deep scan
+local hopDelay = 6
 -- =================================================
 
 local disableAllGUIs = true
@@ -24,7 +24,7 @@ local freezeHeight = 10000
 
 -- ULTRA BLACKLIST
 getgenv().AvoidedServers = getgenv().AvoidedServers or {}
-local maxAvoid = 150
+local maxAvoid = 200
 
 local function addToAvoidList(jobId)
     if not table.find(getgenv().AvoidedServers, jobId) then
@@ -64,14 +64,11 @@ task.spawn(function()
             task.wait(1.8)
             freezePlayerInAir()
         end)
-        if player.Character then
-            task.wait(1.8)
-            freezePlayerInAir()
-        end
+        if player.Character then task.wait(1.8) freezePlayerInAir() end
     end
 end)
 
--- ====================== PERFORMANCE & GUI ======================
+-- ====================== PERFORMANCE ======================
 local function applyPerformanceBoost()
     pcall(function()
         Lighting.GlobalShadows = false
@@ -98,7 +95,7 @@ local function disableGUIs()
     end)
 end
 
--- ====================== SERVER HOP (7-18 Players) ======================
+-- ====================== IMPROVED SERVER HOP ======================
 local hasHopped = false
 
 local function findBestServer()
@@ -106,45 +103,38 @@ local function findBestServer()
         local goodServers = {}
         local cursor = ""
 
-        print("🔍 Scanning for servers with 7-18 players...")
+        print("🔍 Deep scanning for 8-18 player servers...")
 
         for page = 1, scanPages do
             local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
-            if cursor and cursor ~= "" then
-                url = url .. "&cursor=" .. cursor
-            end
+            if cursor and cursor ~= "" then url = url .. "&cursor=" .. cursor end
 
             local response = HttpService:GetAsync(url)
             local data = HttpService:JSONDecode(response)
 
             for _, server in ipairs(data.data or {}) do
                 local plrs = server.playing or 0
-                if plrs >= targetMinPlayers 
-                   and plrs <= maxPreferredPlayers 
+                if plrs >= targetMinPlayers and plrs <= maxPreferredPlayers 
                    and not table.find(getgenv().AvoidedServers, server.id) 
                    and server.id ~= game.JobId then
                     
                     table.insert(goodServers, {
                         id = server.id,
-                        playing = plrs,
-                        maxPlayers = server.maxPlayers or 50
+                        playing = plrs
                     })
                 end
             end
 
             cursor = data.nextPageCursor
             if not cursor then break end
-            task.wait(0.025)
+            task.wait(0.02)
         end
 
         if #goodServers == 0 then return nil end
 
-        -- Sort by highest players first (within 7-18)
-        table.sort(goodServers, function(a, b)
-            return a.playing > b.playing
-        end)
+        table.sort(goodServers, function(a, b) return a.playing > b.playing end)
 
-        print("✅ Found " .. #goodServers .. " good servers. Best: " .. goodServers[1].playing .. " players")
+        print("✅ Found " .. #goodServers .. " valid servers | Best: " .. goodServers[1].playing .. " players")
         return goodServers[1]
     end)
 
@@ -155,22 +145,37 @@ local function serverHop(reason)
     if hasHopped then return end
     hasHopped = true
 
-    print("🔄 " .. reason .. " | Blacklisted: " .. #getgenv().AvoidedServers)
+    print("🔄 " .. reason .. " | Avoiding " .. #getgenv().AvoidedServers .. " servers")
     task.wait(hopDelay)
 
     local bestServer = findBestServer()
 
     if bestServer then
         addToAvoidList(bestServer.id)
-        print("🎯 Hopping to " .. bestServer.playing .. " players server")
+        print("🎯 Hopping to " .. bestServer.playing .. " player server")
         TeleportService:TeleportToPlaceInstance(game.PlaceId, bestServer.id, player)
     else
-        print("⚠️ No 7-18 player servers found → Blind hop")
-        task.wait(3)
+        print("⚠️ No good servers → Strong blind hop")
+        task.wait(4)
         addToAvoidList(game.JobId)
         TeleportService:Teleport(game.PlaceId, player)
     end
 end
+
+-- ====================== POST-JOIN CHECK (Anti Low Server) ======================
+task.spawn(function()
+    task.wait(8) -- Give time to fully join
+    while hopEnabled do
+        local current = #game.Players:GetPlayers()
+        if current < targetMinPlayers then
+            print("⚠️ Joined low server (" .. current .. " players) → Forcing hop")
+            addToAvoidList(game.JobId)
+            serverHop("Joined too small server")
+            break
+        end
+        task.wait(3)
+    end
+end)
 
 -- Auto Hop Logic
 if hopEnabled then
@@ -186,7 +191,7 @@ if hopEnabled then
     end)
 end
 
--- ====================== AUTO EQUIP ======================
+-- ====================== AUTO EQUIP & KILL ALL ======================
 if autoEquipEnabled then
     task.spawn(function()
         while autoEquipEnabled do
@@ -202,31 +207,24 @@ if autoEquipEnabled then
     end)
 end
 
--- ====================== KILL ALL ======================
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
 
     while killAllEnabled and not hasHopped do
         local char = player.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then
-            task.wait(0.5) continue
-        end
+        if not char or not char:FindFirstChild("HumanoidRootPart") then task.wait(0.5) continue end
 
         local rightHand = char:FindFirstChild("RightHand")
         local leftHand = char:FindFirstChild("LeftHand")
-        if not (rightHand and leftHand) then 
-            task.wait(0.4) continue 
-        end
+        if not (rightHand and leftHand) then task.wait(0.4) continue end
 
         for _, target in ipairs(game.Players:GetPlayers()) do
             if target == player then continue end
             local tChar = target.Character
             if not tChar then continue end
-
             local tRoot = tChar:FindFirstChild("HumanoidRootPart")
             local tHum = tChar:FindFirstChild("Humanoid")
-
             if tRoot and tHum and tHum.Health > 0 then
                 pcall(function()
                     firetouchinterest(rightHand, tRoot, 1)
@@ -244,4 +242,4 @@ task.spawn(function()
     end
 end)
 
-print("✅ Script Loaded - Targeting 7 to 18 Players")
+print("✅ Fixed Script Loaded - Better 8-18 Player Targeting + Stronger Anti-Rejoin")
