@@ -1,4 +1,4 @@
--- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + STRICT 15-20 + GODMODE
+-- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + STRICT 15-20 + GODMODE + AUTO FRIENDS WHITELIST
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -9,7 +9,7 @@ local RunService = game:GetService("RunService")
 local killAllEnabled = true
 local autoEquipEnabled = true
 local hopEnabled = true
-local godmodeEnabled = true        -- <--- NEW: Invincibility
+local godmodeEnabled = true
 
 -- STRICT 15+ ONLY
 local minPlayersToHop = 15
@@ -38,7 +38,7 @@ local function addToAvoidList(jobId)
 end
 addToAvoidList(game.JobId)
 
--- ====================== GODMODE (No one can kill you) ======================
+-- ====================== GODMODE ======================
 local function enableGodmode()
     if not godmodeEnabled then return end
     task.spawn(function()
@@ -49,11 +49,9 @@ local function enableGodmode()
                 if hum then
                     hum.MaxHealth = math.huge
                     hum.Health = math.huge
-                    -- Extra protection
                     hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
                 end
                 
-                -- Prevent knockback / ragdoll
                 local root = char:FindFirstChild("HumanoidRootPart")
                 if root then
                     root.Velocity = Vector3.new(0, root.Velocity.Y, 0)
@@ -219,7 +217,7 @@ if hopEnabled then
     end)
 end
 
--- ====================== AUTO EQUIP & KILL ALL ======================
+-- ====================== AUTO EQUIP & KILL ALL (AUTO FRIENDS WHITELIST) ======================
 if autoEquipEnabled then
     task.spawn(function()
         while autoEquipEnabled do
@@ -238,7 +236,7 @@ end
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
-    enableGodmode()   -- Activate Godmode
+    enableGodmode()
     
     while killAllEnabled and not hasHopped do
         local char = player.Character
@@ -256,6 +254,16 @@ task.spawn(function()
 
         for _, target in ipairs(game.Players:GetPlayers()) do
             if target == player then continue end
+            
+            -- AUTO WHITELIST: Skip if they are your Roblox friend
+            local isFriend = pcall(function()
+                return player:IsFriendsWith(target.UserId)
+            end)
+            
+            if isFriend then
+                continue
+            end
+
             local tChar = target.Character
             if not tChar then continue end
             
@@ -279,4 +287,5 @@ task.spawn(function()
     end
 end)
 
-print("✅ STRICT 15-20 + GODMODE Loaded | You are now unkillable")
+print("✅ STRICT 15-20 + GODMODE + AUTO Friends Whitelist Loaded")
+print("👥 Your Roblox friends are now automatically protected")
