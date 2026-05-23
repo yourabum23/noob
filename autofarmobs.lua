@@ -1,4 +1,4 @@
--- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + 7-18 Players (FIXED)
+-- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + STRICT 15-20 SERVERS
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -10,21 +10,22 @@ local killAllEnabled = true
 local autoEquipEnabled = true
 local hopEnabled = true
 
-local minPlayersToHop = 6
-local targetMinPlayers = 8      -- Raised slightly
-local maxPreferredPlayers = 18
+-- STRICT 15+ ONLY (No servers under 15 allowed)
+local minPlayersToHop = 15          -- Will hop instantly if below 15
+local targetMinPlayers = 15         -- Minimum acceptable
+local maxPreferredPlayers = 20      -- Max 20 players
 
-local scanPages = 200           -- Deep scan
-local hopDelay = 6
+local scanPages = 350               -- Deeper scan for high-pop servers
+local hopDelay = 4
+
 -- =================================================
-
 local disableAllGUIs = true
 local freezeInAirEnabled = true
 local freezeHeight = 10000
 
 -- ULTRA BLACKLIST
 getgenv().AvoidedServers = getgenv().AvoidedServers or {}
-local maxAvoid = 200
+local maxAvoid = 350
 
 local function addToAvoidList(jobId)
     if not table.find(getgenv().AvoidedServers, jobId) then
@@ -34,7 +35,6 @@ local function addToAvoidList(jobId)
         end
     end
 end
-
 addToAvoidList(game.JobId)
 
 -- ====================== FREEZE IN AIR ======================
@@ -43,10 +43,10 @@ local function freezePlayerInAir()
     if not freezeInAirEnabled then return end
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    
+   
     local root = char.HumanoidRootPart
     root.CFrame = root.CFrame * CFrame.new(0, freezeHeight, 0)
-    
+   
     if freezeConnection then freezeConnection:Disconnect() end
     freezeConnection = RunService.Heartbeat:Connect(function()
         if root and root.Parent then
@@ -95,98 +95,100 @@ local function disableGUIs()
     end)
 end
 
--- ====================== IMPROVED SERVER HOP ======================
+-- ====================== STRICT BIG SERVER HOP ======================
 local hasHopped = false
 
 local function findBestServer()
     local success, result = pcall(function()
         local goodServers = {}
         local cursor = ""
-
-        print("🔍 Deep scanning for 8-18 player servers...")
+        
+        print("🔍 Scanning for STRICT 15-20 player servers...")
 
         for page = 1, scanPages do
             local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
-            if cursor and cursor ~= "" then url = url .. "&cursor=" .. cursor end
-
+            if cursor and cursor ~= "" then 
+                url = url .. "&cursor=" .. cursor 
+            end
+            
             local response = HttpService:GetAsync(url)
             local data = HttpService:JSONDecode(response)
-
+            
             for _, server in ipairs(data.data or {}) do
                 local plrs = server.playing or 0
-                if plrs >= targetMinPlayers and plrs <= maxPreferredPlayers 
-                   and not table.find(getgenv().AvoidedServers, server.id) 
+                if plrs >= targetMinPlayers and plrs <= maxPreferredPlayers
+                   and not table.find(getgenv().AvoidedServers, server.id)
                    and server.id ~= game.JobId then
-                    
+                   
                     table.insert(goodServers, {
                         id = server.id,
                         playing = plrs
                     })
                 end
             end
-
+            
             cursor = data.nextPageCursor
             if not cursor then break end
-            task.wait(0.02)
+            task.wait(0.01)
         end
 
         if #goodServers == 0 then return nil end
-
+        
         table.sort(goodServers, function(a, b) return a.playing > b.playing end)
-
-        print("✅ Found " .. #goodServers .. " valid servers | Best: " .. goodServers[1].playing .. " players")
+        
+        print("✅ Found " .. #goodServers .. " valid 15+ servers | Best: " .. goodServers[1].playing .. "/20")
         return goodServers[1]
     end)
-
+    
     return success and result or nil
 end
 
 local function serverHop(reason)
     if hasHopped then return end
     hasHopped = true
-
+    
     print("🔄 " .. reason .. " | Avoiding " .. #getgenv().AvoidedServers .. " servers")
     task.wait(hopDelay)
-
+    
     local bestServer = findBestServer()
-
+    
     if bestServer then
         addToAvoidList(bestServer.id)
-        print("🎯 Hopping to " .. bestServer.playing .. " player server")
+        print("🎯 Hopping to " .. bestServer.playing .. "/20 player server")
         TeleportService:TeleportToPlaceInstance(game.PlaceId, bestServer.id, player)
     else
-        print("⚠️ No good servers → Strong blind hop")
+        print("⚠️ No 15+ servers found → Blind hop")
         task.wait(4)
         addToAvoidList(game.JobId)
         TeleportService:Teleport(game.PlaceId, player)
     end
 end
 
--- ====================== POST-JOIN CHECK (Anti Low Server) ======================
+-- ====================== STRICT POST-JOIN CHECK ======================
 task.spawn(function()
-    task.wait(8) -- Give time to fully join
+    task.wait(8)
     while hopEnabled do
         local current = #game.Players:GetPlayers()
         if current < targetMinPlayers then
-            print("⚠️ Joined low server (" .. current .. " players) → Forcing hop")
+            print("⚠️ Joined server under 15 (" .. current .. " players) → Immediate hop")
             addToAvoidList(game.JobId)
-            serverHop("Joined too small server")
+            serverHop("Joined server below 15 players")
             break
         end
-        task.wait(3)
+        task.wait(2.5)
     end
 end)
 
--- Auto Hop Logic
+-- Auto Hop Logic (Very Strict)
 if hopEnabled then
     task.spawn(function()
         while hopEnabled and not hasHopped do
             local current = #game.Players:GetPlayers()
             if current < minPlayersToHop then
-                serverHop("Player count dropped to " .. current)
+                serverHop("Player count dropped below 15")
                 break
             end
-            task.wait(2.5)
+            task.wait(2)
         end
     end)
 end
@@ -210,21 +212,29 @@ end
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
-
+    
     while killAllEnabled and not hasHopped do
         local char = player.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then task.wait(0.5) continue end
-
+        if not char or not char:FindFirstChild("HumanoidRootPart") then 
+            task.wait(0.5) 
+            continue 
+        end
+        
         local rightHand = char:FindFirstChild("RightHand")
         local leftHand = char:FindFirstChild("LeftHand")
-        if not (rightHand and leftHand) then task.wait(0.4) continue end
+        if not (rightHand and leftHand) then 
+            task.wait(0.4) 
+            continue 
+        end
 
         for _, target in ipairs(game.Players:GetPlayers()) do
             if target == player then continue end
             local tChar = target.Character
             if not tChar then continue end
+            
             local tRoot = tChar:FindFirstChild("HumanoidRootPart")
             local tHum = tChar:FindFirstChild("Humanoid")
+            
             if tRoot and tHum and tHum.Health > 0 then
                 pcall(function()
                     firetouchinterest(rightHand, tRoot, 1)
@@ -232,14 +242,14 @@ task.spawn(function()
                     task.wait(0.008)
                     firetouchinterest(rightHand, tRoot, 0)
                     firetouchinterest(leftHand, tRoot, 0)
-
+                    
                     player.muscleEvent:FireServer("punch", "rightHand")
                     player.muscleEvent:FireServer("punch", "leftHand")
                 end)
             end
         end
-        task.wait(0.12)
+        task.wait(0.1)
     end
 end)
 
-print("✅ Fixed Script Loaded - Better 8-18 Player Targeting + Stronger Anti-Rejoin")
+print("✅ STRICT 15-20 Player Script Loaded | Will NEVER stay in servers under 15 players")
