@@ -1,4 +1,4 @@
--- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + STRICT 15-20 + GODMODE + AUTO FRIENDS WHITELIST
+-- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + STRICT 15-20 + GODMODE + AUTO FRIENDS
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -217,7 +217,7 @@ if hopEnabled then
     end)
 end
 
--- ====================== AUTO EQUIP & KILL ALL (AUTO FRIENDS WHITELIST) ======================
+-- ====================== AUTO EQUIP & KILL ALL ======================
 if autoEquipEnabled then
     task.spawn(function()
         while autoEquipEnabled do
@@ -255,13 +255,14 @@ task.spawn(function()
         for _, target in ipairs(game.Players:GetPlayers()) do
             if target == player then continue end
             
-            -- AUTO WHITELIST: Skip if they are your Roblox friend
-            local isFriend = pcall(function()
-                return player:IsFriendsWith(target.UserId)
+            -- FIXED: Proper friend check
+            local isFriend = false
+            pcall(function()
+                isFriend = player:IsFriendsWith(target.UserId)
             end)
             
             if isFriend then
-                continue
+                continue  -- Skip friends
             end
 
             local tChar = target.Character
@@ -287,5 +288,4 @@ task.spawn(function()
     end
 end)
 
-print("✅ STRICT 15-20 + GODMODE + AUTO Friends Whitelist Loaded")
-print("👥 Your Roblox friends are now automatically protected")
+print("✅ FIXED Script Loaded | Killing Everyone Except Roblox Friends")
