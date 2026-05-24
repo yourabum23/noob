@@ -1,4 +1,4 @@
--- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + STRICT 15-20
+-- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + 30s Auto Hop
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -11,15 +11,10 @@ local autoEquipEnabled = true
 local hopEnabled = true
 local performanceBoostEnabled = true
 
--- STRICT 15+ ONLY
-local minPlayersToHop = 6
-local targetMinPlayers = 15
-local maxPreferredPlayers = 20
-
+local hopAfterSeconds = 30  -- Change this if you want different time
 -- =================================================
+
 local disableAllGUIs = true
-local freezeInAirEnabled = false
-local freezeHeight = 10000
 
 -- ULTRA BLACKLIST
 getgenv().AvoidedServers = getgenv().AvoidedServers or {}
@@ -33,6 +28,7 @@ local function addToAvoidList(jobId)
         end
     end
 end
+
 addToAvoidList(game.JobId)
 
 -- ====================== PERFORMANCE ======================
@@ -63,15 +59,15 @@ local function disableGUIs()
     end)
 end
 
--- ====================== NEW SERVER HOP SYSTEM (From Your Script) ======================
+-- ====================== SERVER HOP SYSTEM ======================
 local hasHopped = false
 
 local function GETOUT(reason)
     if hasHopped then return end
     hasHopped = true
-    
-    print("🔄 " .. (reason or "Hopping") .. " | Using new server hop system")
-    
+   
+    print("🔄 " .. (reason or "Hopping") .. " | 30s timer complete")
+   
     local Services = setmetatable({}, {
         __index = function(self, name)
             local success, cache = pcall(function()
@@ -85,64 +81,47 @@ local function GETOUT(reason)
             end
         end
     })
-    
+   
     local PlaceId, JobId = game.PlaceId, game.JobId
     local servers = {}
-    
+   
     local req = game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Desc&limit=100&excludeFullGames=true")
     local body = Services.HttpService:JSONDecode(req)
-    
+   
     if body and body.data then
         for i, v in next, body.data do
-            if type(v) == "table" and tonumber(v.playing) and tonumber(v.maxPlayers) 
+            if type(v) == "table" and tonumber(v.playing) and tonumber(v.maxPlayers)
                and v.playing < v.maxPlayers and v.id ~= JobId then
                 table.insert(servers, 1, v.id)
             end
         end
     end
-    
+   
     if #servers >= 1 then
         local chosen = servers[math.random(1, #servers)]
         addToAvoidList(chosen)
-        print("🎯 Hopping to random server")
+        print("🎯 Hopping to new server")
         Services.TeleportService:TeleportToPlaceInstance(PlaceId, chosen, game.Players.LocalPlayer)
     else
-        print("⚠️ No available servers, retrying...")
+        print("⚠️ No available servers, retrying in 5s...")
         hasHopped = false
-        task.wait(6)
+        task.wait(5)
     end
 end
 
--- ====================== POST-JOIN CHECK ======================
-task.spawn(function()
-    task.wait(8)
-    while hopEnabled do
-        local current = #game.Players:GetPlayers()
-        if current < targetMinPlayers then
-            print("⚠️ Joined low server (" .. current .. " players) → Hopping")
-            addToAvoidList(game.JobId)
-            GETOUT("Joined server below 15 players")
-            break
-        end
-        task.wait(3)
-    end
-end)
-
--- Auto Hop Logic
+-- ====================== 30 SECOND AUTO HOP (Every Server) ======================
 if hopEnabled then
     task.spawn(function()
-        while hopEnabled and not hasHopped do
-            local current = #game.Players:GetPlayers()
-            if current < minPlayersToHop then
-                GETOUT("Player count dropped below " .. minPlayersToHop)
-                break
+        while hopEnabled do
+            task.wait(hopAfterSeconds)
+            if not hasHopped then
+                GETOUT("30 seconds reached")
             end
-            task.wait(2.5)
         end
     end)
 end
 
--- ====================== AUTO EQUIP & KILL ALL ======================
+-- ====================== AUTO EQUIP ======================
 if autoEquipEnabled then
     task.spawn(function()
         while autoEquipEnabled do
@@ -158,38 +137,39 @@ if autoEquipEnabled then
     end)
 end
 
+-- ====================== KILL ALL ======================
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
-   
-    while killAllEnabled and not hasHopped do
+  
+    while killAllEnabled do
         local char = player.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then
             task.wait(0.5) continue
         end
-    
+   
         local rightHand = char:FindFirstChild("RightHand")
         local leftHand = char:FindFirstChild("LeftHand")
         if not (rightHand and leftHand) then
             task.wait(0.4) continue
         end
-     
+    
         for _, target in ipairs(game.Players:GetPlayers()) do
             if target == player then continue end
-         
+        
             local isFriend = false
             pcall(function()
                 isFriend = player:IsFriendsWith(target.UserId)
             end)
-         
+        
             if isFriend then continue end
-          
+         
             local tChar = target.Character
             if not tChar then continue end
-        
+       
             local tRoot = tChar:FindFirstChild("HumanoidRootPart")
             local tHum = tChar:FindFirstChild("Humanoid")
-        
+       
             if tRoot and tHum and tHum.Health > 0 then
                 pcall(function()
                     firetouchinterest(rightHand, tRoot, 1)
@@ -197,7 +177,7 @@ task.spawn(function()
                     task.wait(0.008)
                     firetouchinterest(rightHand, tRoot, 0)
                     firetouchinterest(leftHand, tRoot, 0)
-                
+               
                     player.muscleEvent:FireServer("punch", "rightHand")
                     player.muscleEvent:FireServer("punch", "leftHand")
                 end)
@@ -207,4 +187,4 @@ task.spawn(function()
     end
 end)
 
-print("✅ Script Loaded | New Server Hop System Integrated")
+print("✅ Script Loaded | Auto Hop Every " .. hopAfterSeconds .. " Seconds")
