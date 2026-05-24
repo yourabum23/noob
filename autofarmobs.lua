@@ -1,4 +1,4 @@
--- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + STRICT 15-20 + FULL GODMODE + BLUE BUBBLE
+-- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + STRICT 15-20 (Descending Only)
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -8,11 +8,10 @@ local RunService = game:GetService("RunService")
 -- ==================== SETTINGS ====================
 local killAllEnabled = true
 local autoEquipEnabled = true
-local hopEnabled = false
-local godmodeEnabled = false
+local hopEnabled = true
 local performanceBoostEnabled = true
 
--- STRICT 15+ ONLY
+-- STRICT 15+ ONLY + DESCENDING SERVERS
 local minPlayersToHop = 6
 local targetMinPlayers = 15
 local maxPreferredPlayers = 20
@@ -37,125 +36,6 @@ local function addToAvoidList(jobId)
     end
 end
 addToAvoidList(game.JobId)
-
--- ====================== FULL GODMODE + BLUE BUBBLE FORCEFIELD ======================
-local function enableGodmode()
-    if not godmodeEnabled then return end
-    
-    local function createBlueBubble(char)
-        if not char then return end
-        
-        -- Remove old forcefields
-        for _, v in pairs(char:GetChildren()) do
-            if v:IsA("ForceField") then v:Destroy() end
-        end
-        
-        -- Create permanent blue bubble (Roblox loading screen style)
-        local forceField = Instance.new("ForceField")
-        forceField.Name = "GodmodeBubble"
-        forceField.Visible = true
-        forceField.Parent = char
-    end
-
-    -- Main protection
-    task.spawn(function()
-        while godmodeEnabled do
-            local char = player.Character
-            if char then
-                local hum = char:FindFirstChild("Humanoid")
-                if hum then
-                    hum.MaxHealth = math.huge
-                    hum.Health = math.huge
-                    hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-                end
-                
-                -- Keep blue bubble alive
-                if not char:FindFirstChild("GodmodeBubble") then
-                    createBlueBubble(char)
-                end
-            end
-            task.wait(0.1)
-        end
-    end)
-
-    -- Extra protection layers
-    RunService.Heartbeat:Connect(function()
-        local char = player.Character
-        if char then
-            local hum = char:FindFirstChild("Humanoid")
-            if hum then
-                hum.Health = math.huge
-            end
-        end
-    end)
-
-    RunService.Stepped:Connect(function()
-        local char = player.Character
-        if char and not char:FindFirstChild("GodmodeBubble") then
-            createBlueBubble(char)
-        end
-    end)
-
-    -- Respawn protection
-    player.CharacterAdded:Connect(function(char)
-        task.wait(0.3)
-        createBlueBubble(char)
-        
-        local hum = char:WaitForChild("Humanoid", 5)
-        if hum then
-            hum.MaxHealth = math.huge
-            hum.Health = math.huge
-        end
-    end)
-end
-
--- ====================== FIXED FREEZE IN AIR ======================
-local freezeConnection = nil
-
-local function stopFreeze()
-    if freezeConnection then
-        freezeConnection:Disconnect()
-        freezeConnection = nil
-    end
-end
-
-local function freezePlayerInAir()
-    if not freezeInAirEnabled then 
-        stopFreeze()
-        return 
-    end
-    
-    local char = player.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-
-    local root = char.HumanoidRootPart
-    root.CFrame = root.CFrame * CFrame.new(0, freezeHeight, 0)
-
-    stopFreeze()
-    freezeConnection = RunService.Heartbeat:Connect(function()
-        if root and root.Parent then
-            root.Velocity = Vector3.new(0, 0, 0)
-            root.RotVelocity = Vector3.new(0, 0, 0)
-            local pos = root.Position
-            root.CFrame = CFrame.new(pos.X, freezeHeight, pos.Z)
-        end
-    end)
-end
-
-task.spawn(function()
-    if freezeInAirEnabled then
-        player.CharacterAdded:Connect(function()
-            task.wait(1.8)
-            freezePlayerInAir()
-        end)
-        if player.Character then 
-            task.wait(1.8) 
-            freezePlayerInAir() 
-        end
-    else
-        stopFreeze()
-    end
-end)
 
 -- ====================== PERFORMANCE ======================
 local function applyPerformanceBoost()
@@ -185,66 +65,70 @@ local function disableGUIs()
     end)
 end
 
--- ====================== STRICT BIG SERVER HOP ======================
+-- ====================== STRICT DESCENDING SERVER HOP ======================
 local hasHopped = false
 
 local function findBestServer()
     local success, result = pcall(function()
         local goodServers = {}
         local cursor = ""
-      
-        print("🔍 Scanning for STRICT 15-20 player servers...")
+        
+        print("🔍 Scanning for STRICT 15-20 player servers (Descending Order)...")
+
         for page = 1, scanPages do
             local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
             if cursor and cursor ~= "" then
                 url = url .. "&cursor=" .. cursor
             end
-          
+            
             local response = HttpService:GetAsync(url)
             local data = HttpService:JSONDecode(response)
-          
+            
             for _, server in ipairs(data.data or {}) do
                 local plrs = server.playing or 0
                 if plrs >= targetMinPlayers and plrs <= maxPreferredPlayers
                    and not table.find(getgenv().AvoidedServers, server.id)
                    and server.id ~= game.JobId then
-                 
+                    
                     table.insert(goodServers, {
                         id = server.id,
                         playing = plrs
                     })
                 end
             end
-          
+            
             cursor = data.nextPageCursor
             if not cursor then break end
             task.wait(0.01)
         end
+        
         if #goodServers == 0 then return nil end
+        
+        -- Strictly sort by highest players first (Descending)
         table.sort(goodServers, function(a, b) return a.playing > b.playing end)
-      
-        print("✅ Found " .. #goodServers .. " valid 15+ servers | Best: " .. goodServers[1].playing .. "/20")
+        
+        print("✅ Found " .. #goodServers .. " valid servers | Best: " .. goodServers[1].playing .. "/20 players")
         return goodServers[1]
     end)
-  
+    
     return success and result or nil
 end
 
 local function serverHop(reason)
     if hasHopped then return end
     hasHopped = true
-  
+    
     print("🔄 " .. reason .. " | Avoiding " .. #getgenv().AvoidedServers .. " servers")
     task.wait(hopDelay)
-  
+    
     local bestServer = findBestServer()
-  
+    
     if bestServer then
         addToAvoidList(bestServer.id)
-        print("🎯 Hopping to " .. bestServer.playing .. "/20 player server")
+        print("🎯 Hopping to " .. bestServer.playing .. "/20 player server (Descending)")
         TeleportService:TeleportToPlaceInstance(game.PlaceId, bestServer.id, player)
     else
-        print("⚠️ No 15+ servers found → Blind hop")
+        print("⚠️ No good servers found → Blind hop")
         task.wait(4)
         addToAvoidList(game.JobId)
         TeleportService:Teleport(game.PlaceId, player)
@@ -299,38 +183,37 @@ end
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
-    enableGodmode()
-  
+    
     while killAllEnabled and not hasHopped do
         local char = player.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then
             task.wait(0.5)
             continue
         end
-      
+     
         local rightHand = char:FindFirstChild("RightHand")
         local leftHand = char:FindFirstChild("LeftHand")
         if not (rightHand and leftHand) then
             task.wait(0.4)
             continue
         end
-       
+      
         for _, target in ipairs(game.Players:GetPlayers()) do
             if target == player then continue end
-          
+         
             local isFriend = false
             pcall(function()
                 isFriend = player:IsFriendsWith(target.UserId)
             end)
-          
+         
             if isFriend then continue end
-           
+          
             local tChar = target.Character
             if not tChar then continue end
-          
+         
             local tRoot = tChar:FindFirstChild("HumanoidRootPart")
             local tHum = tChar:FindFirstChild("Humanoid")
-          
+         
             if tRoot and tHum and tHum.Health > 0 then
                 pcall(function()
                     firetouchinterest(rightHand, tRoot, 1)
@@ -338,7 +221,7 @@ task.spawn(function()
                     task.wait(0.008)
                     firetouchinterest(rightHand, tRoot, 0)
                     firetouchinterest(leftHand, tRoot, 0)
-                  
+                 
                     player.muscleEvent:FireServer("punch", "rightHand")
                     player.muscleEvent:FireServer("punch", "leftHand")
                 end)
@@ -348,4 +231,4 @@ task.spawn(function()
     end
 end)
 
-print("✅ FULL GODMODE + BLUE BUBBLE LOADED | You now have permanent loading screen protection")
+print("✅ Script Loaded | Godmode Removed | Server Hop Set to Descending Only")
