@@ -1,4 +1,4 @@
--- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + STRICT 15-20 (Descending Only)
+-- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + STRICT 15-20 (Improved Scanner)
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -15,8 +15,8 @@ local performanceBoostEnabled = true
 local minPlayersToHop = 6
 local targetMinPlayers = 15
 local maxPreferredPlayers = 20
-local scanPages = 400
-local hopDelay = 5
+local scanPages = 500               -- Increased heavily
+local hopDelay = 6
 
 -- =================================================
 local disableAllGUIs = true
@@ -65,7 +65,7 @@ local function disableGUIs()
     end)
 end
 
--- ====================== STRICT DESCENDING SERVER HOP (No Blind Hop) ======================
+-- ====================== IMPROVED SERVER SCANNER ======================
 local hasHopped = false
 
 local function findBestServer()
@@ -73,7 +73,7 @@ local function findBestServer()
         local goodServers = {}
         local cursor = ""
         
-        print("🔍 Deep scanning for 15-20 player servers (Descending)...")
+        print("🔍 Deep scanning for 15-20 player servers... (This may take a moment)")
 
         for page = 1, scanPages do
             local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
@@ -99,17 +99,18 @@ local function findBestServer()
             
             cursor = data.nextPageCursor
             if not cursor then break end
-            task.wait(0.01)
+            
+            task.wait(0.08) -- Slightly longer delay to avoid rate limits
         end
         
         if #goodServers == 0 then 
-            print("⚠️ No 15-20 player servers found right now...")
+            print("⚠️ Still no 15-20 servers found... Retrying later")
             return nil 
         end
         
         table.sort(goodServers, function(a, b) return a.playing > b.playing end)
         
-        print("✅ Found " .. #goodServers .. " valid servers | Best: " .. goodServers[1].playing .. "/20 players")
+        print("✅ Found " .. #goodServers .. " valid high servers | Best: " .. goodServers[1].playing .. "/20")
         return goodServers[1]
     end)
     
@@ -130,9 +131,9 @@ local function serverHop(reason)
         print("🎯 Hopping to " .. bestServer.playing .. "/20 player server")
         TeleportService:TeleportToPlaceInstance(game.PlaceId, bestServer.id, player)
     else
-        print("⏳ No high player servers available. Waiting and retrying...")
+        print("⏳ No suitable servers right now. Resetting and retrying...")
         hasHopped = false
-        task.wait(8)
+        task.wait(10)
     end
 end
 
@@ -142,12 +143,12 @@ task.spawn(function()
     while hopEnabled do
         local current = #game.Players:GetPlayers()
         if current < targetMinPlayers then
-            print("⚠️ Joined server under 15 (" .. current .. " players) → Immediate hop")
+            print("⚠️ Joined low server (" .. current .. " players) → Hopping")
             addToAvoidList(game.JobId)
             serverHop("Joined server below 15 players")
             break
         end
-        task.wait(2.5)
+        task.wait(3)
     end
 end)
 
@@ -160,12 +161,12 @@ if hopEnabled then
                 serverHop("Player count dropped below 15")
                 break
             end
-            task.wait(2)
+            task.wait(2.5)
         end
     end)
 end
 
--- ====================== AUTO EQUIP & KILL ALL (FIXED) ======================
+-- ====================== AUTO EQUIP & KILL ALL ======================
 if autoEquipEnabled then
     task.spawn(function()
         while autoEquipEnabled do
@@ -188,29 +189,24 @@ task.spawn(function()
     while killAllEnabled and not hasHopped do
         local char = player.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then
-            task.wait(0.5)
-            continue
+            task.wait(0.5) continue
         end
     
         local rightHand = char:FindFirstChild("RightHand")
         local leftHand = char:FindFirstChild("LeftHand")
         if not (rightHand and leftHand) then
-            task.wait(0.4)
-            continue
+            task.wait(0.4) continue
         end
      
         for _, target in ipairs(game.Players:GetPlayers()) do
             if target == player then continue end
          
-            -- FIXED Friend Check
             local isFriend = false
             pcall(function()
                 isFriend = player:IsFriendsWith(target.UserId)
             end)
          
-            if isFriend then 
-                continue 
-            end
+            if isFriend then continue end
           
             local tChar = target.Character
             if not tChar then continue end
@@ -231,8 +227,8 @@ task.spawn(function()
                 end)
             end
         end
-        task.wait(0.08) -- Slightly faster attack
+        task.wait(0.08)
     end
 end)
 
-print("✅ Script Loaded | Kill All Fixed | Only High Player Servers")
+print("✅ Improved Scanner Loaded | Should now detect high player servers better")
