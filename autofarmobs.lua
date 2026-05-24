@@ -11,7 +11,7 @@ local autoEquipEnabled = true
 local hopEnabled = true
 local performanceBoostEnabled = true
 
-local hopAfterSeconds = 120  -- Change this if you want different time
+local hopAfterSeconds = 60  -- Change this if you want different time
 -- =================================================
 
 local disableAllGUIs = true
