@@ -141,49 +141,57 @@ end
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
-  
+    
     while killAllEnabled do
         local char = player.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then
-            task.wait(0.5) continue
-        end
-   
+        if not char then task.wait(0.1) continue end
+        
+        local root = char:FindFirstChild("HumanoidRootPart")
         local rightHand = char:FindFirstChild("RightHand")
         local leftHand = char:FindFirstChild("LeftHand")
-        if not (rightHand and leftHand) then
-            task.wait(0.4) continue
+        
+        if not (root and rightHand and leftHand) then 
+            task.wait(0.15) 
+            continue 
         end
-    
+
         for _, target in ipairs(game.Players:GetPlayers()) do
             if target == player then continue end
-        
+            
+            -- Skip friends
             local isFriend = false
             pcall(function()
                 isFriend = player:IsFriendsWith(target.UserId)
             end)
-        
             if isFriend then continue end
-         
+
             local tChar = target.Character
             if not tChar then continue end
-       
+            
             local tRoot = tChar:FindFirstChild("HumanoidRootPart")
             local tHum = tChar:FindFirstChild("Humanoid")
-       
+            
             if tRoot and tHum and tHum.Health > 0 then
                 pcall(function()
+                    -- Faster touch spam
                     firetouchinterest(rightHand, tRoot, 1)
                     firetouchinterest(leftHand, tRoot, 1)
-                    task.wait(0.008)
-                    firetouchinterest(rightHand, tRoot, 0)
-                    firetouchinterest(leftHand, tRoot, 0)
-               
+                    
+                    -- Fire punches immediately
                     player.muscleEvent:FireServer("punch", "rightHand")
                     player.muscleEvent:FireServer("punch", "leftHand")
+                    
+                    -- Very short delay
+                    task.wait(0.003)
+                    
+                    firetouchinterest(rightHand, tRoot, 0)
+                    firetouchinterest(leftHand, tRoot, 0)
                 end)
             end
         end
-        task.wait(0.08)
+        
+        -- Much tighter loop
+        task.wait(0.025)  -- Was 0.08 → now ~3x faster
     end
 end)
 
