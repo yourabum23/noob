@@ -15,7 +15,7 @@ local performanceBoostEnabled = true
 local minPlayersToHop = 6
 local targetMinPlayers = 15
 local maxPreferredPlayers = 20
-local scanPages = 400               -- Increased for better chance
+local scanPages = 400
 local hopDelay = 5
 
 -- =================================================
@@ -130,9 +130,9 @@ local function serverHop(reason)
         print("🎯 Hopping to " .. bestServer.playing .. "/20 player server")
         TeleportService:TeleportToPlaceInstance(game.PlaceId, bestServer.id, player)
     else
-        print("⏳ No high player servers available. Waiting and trying again...")
-        hasHopped = false  -- Reset so it can try again
-        task.wait(8)       -- Wait before next attempt
+        print("⏳ No high player servers available. Waiting and retrying...")
+        hasHopped = false
+        task.wait(8)
     end
 end
 
@@ -165,7 +165,7 @@ if hopEnabled then
     end)
 end
 
--- ====================== AUTO EQUIP & KILL ALL ======================
+-- ====================== AUTO EQUIP & KILL ALL (FIXED) ======================
 if autoEquipEnabled then
     task.spawn(function()
         while autoEquipEnabled do
@@ -201,14 +201,17 @@ task.spawn(function()
      
         for _, target in ipairs(game.Players:GetPlayers()) do
             if target == player then continue end
-        
+         
+            -- FIXED Friend Check
             local isFriend = false
             pcall(function()
                 isFriend = player:IsFriendsWith(target.UserId)
             end)
-        
-            if isFriend then continue end
          
+            if isFriend then 
+                continue 
+            end
+          
             local tChar = target.Character
             if not tChar then continue end
         
@@ -228,8 +231,8 @@ task.spawn(function()
                 end)
             end
         end
-        task.wait(0.1)
+        task.wait(0.08) -- Slightly faster attack
     end
 end)
 
-print("✅ Script Loaded | Blind Hop Removed | Only hops to 15-20 player servers")
+print("✅ Script Loaded | Kill All Fixed | Only High Player Servers")
