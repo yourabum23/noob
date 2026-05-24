@@ -126,18 +126,18 @@ if autoEquipEnabled then
     end)
 end
 
--- ====================== KILL ALL (UPDATED FOR MUSCLE LEGENDS) ======================
+-- ====================== KILL ALL (STRONG VERSION) ======================
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
 
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local muscleEvent = ReplicatedStorage:WaitForChild("muscleEvent", 5)  -- More reliable
+    local muscleEvent = ReplicatedStorage:WaitForChild("muscleEvent", 8)
 
     while killAllEnabled do
         local char = player.Character
         if not char then 
-            task.wait(0.2) 
+            task.wait(0.15) 
             continue 
         end
         
@@ -153,7 +153,6 @@ task.spawn(function()
         for _, target in ipairs(game.Players:GetPlayers()) do
             if target == player then continue end
             
-            -- Skip friends
             local isFriend = false
             pcall(function()
                 isFriend = player:IsFriendsWith(target.UserId)
@@ -168,16 +167,18 @@ task.spawn(function()
             
             if tRoot and tHum and tHum.Health > 0 then
                 pcall(function()
-                    -- Touch interest + punch
+                    -- Stronger attack method
                     firetouchinterest(rightHand, tRoot, 1)
                     firetouchinterest(leftHand, tRoot, 1)
                     
                     if muscleEvent then
+                        -- Try multiple common arguments
                         muscleEvent:FireServer("punch", "rightHand")
                         muscleEvent:FireServer("punch", "leftHand")
+                        muscleEvent:FireServer("Punch", "RightHand")  -- Capitalized version
                     end
                     
-                    task.wait(0.003)
+                    task.wait(0.002)
                     
                     firetouchinterest(rightHand, tRoot, 0)
                     firetouchinterest(leftHand, tRoot, 0)
@@ -185,7 +186,7 @@ task.spawn(function()
             end
         end
         
-        task.wait(0.035)   -- Fast but shouldn't crash
+        task.wait(0.028)  -- Very fast loop
     end
 end)
 
