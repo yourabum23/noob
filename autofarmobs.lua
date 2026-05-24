@@ -126,27 +126,34 @@ if autoEquipEnabled then
     end)
 end
 
--- ====================== KILL ALL (NO DISTANCE) ======================
+-- ====================== KILL ALL (UPDATED FOR MUSCLE LEGENDS) ======================
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
 
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local muscleEvent = ReplicatedStorage:WaitForChild("muscleEvent", 5)  -- More reliable
+
     while killAllEnabled do
         local char = player.Character
-        if not char then task.wait(0.1) continue end
+        if not char then 
+            task.wait(0.2) 
+            continue 
+        end
         
         local root = char:FindFirstChild("HumanoidRootPart")
-        local rightHand = char:FindFirstChild("RightHand")
-        local leftHand = char:FindFirstChild("LeftHand")
+        local rightHand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
+        local leftHand = char:FindFirstChild("LeftHand") or char:FindFirstChild("Left Arm")
         
         if not (root and rightHand and leftHand) then
-            task.wait(0.15)
+            task.wait(0.2)
             continue
         end
 
         for _, target in ipairs(game.Players:GetPlayers()) do
             if target == player then continue end
             
+            -- Skip friends
             local isFriend = false
             pcall(function()
                 isFriend = player:IsFriendsWith(target.UserId)
@@ -161,13 +168,16 @@ task.spawn(function()
             
             if tRoot and tHum and tHum.Health > 0 then
                 pcall(function()
+                    -- Touch interest + punch
                     firetouchinterest(rightHand, tRoot, 1)
                     firetouchinterest(leftHand, tRoot, 1)
                     
-                    player.muscleEvent:FireServer("punch", "rightHand")
-                    player.muscleEvent:FireServer("punch", "leftHand")
+                    if muscleEvent then
+                        muscleEvent:FireServer("punch", "rightHand")
+                        muscleEvent:FireServer("punch", "leftHand")
+                    end
                     
-                    task.wait(0.0035)
+                    task.wait(0.003)
                     
                     firetouchinterest(rightHand, tRoot, 0)
                     firetouchinterest(leftHand, tRoot, 0)
@@ -175,7 +185,7 @@ task.spawn(function()
             end
         end
         
-        task.wait(0.042)   -- Balanced for full server
+        task.wait(0.035)   -- Fast but shouldn't crash
     end
 end)
 
