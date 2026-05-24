@@ -126,76 +126,53 @@ if autoEquipEnabled then
     end)
 end
 
--- ====================== KILL ALL (FINAL STRONG VERSION) ======================
+-- ====================== KILL ALL ======================
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
-
-    -- Try multiple possible locations for the remote
-    local muscleEvent = nil
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    
-    if player:FindFirstChild("muscleEvent") then
-        muscleEvent = player.muscleEvent
-        print("✅ Found muscleEvent on Player")
-    elseif ReplicatedStorage:FindFirstChild("muscleEvent") then
-        muscleEvent = ReplicatedStorage.muscleEvent
-        print("✅ Found muscleEvent in ReplicatedStorage")
-    else
-        muscleEvent = ReplicatedStorage:WaitForChild("muscleEvent", 5)
-        print("✅ Waited for muscleEvent")
-    end
-
+ 
     while killAllEnabled do
         local char = player.Character
-        if not char then 
-            task.wait(0.2) 
-            continue 
+        if not char or not char:FindFirstChild("HumanoidRootPart") then
+            task.wait(0.5) continue
         end
-        
-        local root = char:FindFirstChild("HumanoidRootPart")
-        local rightHand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
-        local leftHand = char:FindFirstChild("LeftHand") or char:FindFirstChild("Left Arm")
-        
-        if not (root and rightHand and leftHand) then
-            task.wait(0.2)
-            continue
+  
+        local rightHand = char:FindFirstChild("RightHand")
+        local leftHand = char:FindFirstChild("LeftHand")
+        if not (rightHand and leftHand) then
+            task.wait(0.4) continue
         end
-
+   
         for _, target in ipairs(game.Players:GetPlayers()) do
             if target == player then continue end
-            
+       
             local isFriend = false
             pcall(function()
                 isFriend = player:IsFriendsWith(target.UserId)
             end)
+       
             if isFriend then continue end
-
+        
             local tChar = target.Character
             if not tChar then continue end
-            
+      
             local tRoot = tChar:FindFirstChild("HumanoidRootPart")
             local tHum = tChar:FindFirstChild("Humanoid")
-            
+      
             if tRoot and tHum and tHum.Health > 0 then
                 pcall(function()
                     firetouchinterest(rightHand, tRoot, 1)
                     firetouchinterest(leftHand, tRoot, 1)
-                    
-                    if muscleEvent then
-                        -- Multiple attack methods
-                        muscleEvent:FireServer("punch", "rightHand")
-                        muscleEvent:FireServer("punch", "leftHand")
-                        muscleEvent:FireServer("Punch", "RightHand")
-                        muscleEvent:FireServer("punch", "RightHand")
-                    end
-                    
-                    task.wait(0.0015)  -- Very fast
+                    task.wait(0.008)
+                    firetouchinterest(rightHand, tRoot, 0)
+                    firetouchinterest(leftHand, tRoot, 0)
+              
+                    player.muscleEvent:FireServer("punch", "rightHand")
+                    player.muscleEvent:FireServer("punch", "leftHand")
                 end)
             end
         end
-        
-        task.wait(0.025)  -- Fast loop
+        task.wait(0.08)
     end
 end)
 
