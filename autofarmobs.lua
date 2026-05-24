@@ -3,15 +3,13 @@ local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 local Lighting = game:GetService("Lighting")
-local RunService = game:GetService("RunService")
 
 -- ==================== SETTINGS ====================
 local killAllEnabled = true
 local autoEquipEnabled = true
 local hopEnabled = true
 local performanceBoostEnabled = true
-
-local hopAfterSeconds = 60  -- Change this if you want different time
+local hopAfterSeconds = 60
 -- =================================================
 
 local disableAllGUIs = true
@@ -28,7 +26,6 @@ local function addToAvoidList(jobId)
         end
     end
 end
-
 addToAvoidList(game.JobId)
 
 -- ====================== PERFORMANCE ======================
@@ -59,63 +56,55 @@ local function disableGUIs()
     end)
 end
 
--- ====================== SERVER HOP SYSTEM ======================
+-- ====================== SERVER HOP ======================
 local hasHopped = false
-
 local function GETOUT(reason)
     if hasHopped then return end
     hasHopped = true
-   
-    print("🔄 " .. (reason or "Hopping") .. " | 30s timer complete")
-   
-    local Services = setmetatable({}, {
-        __index = function(self, name)
-            local success, cache = pcall(function()
-                return cloneref(game:GetService(name))
-            end)
-            if success then
-                rawset(self, name, cache)
-                return cache
-            else
-                error("Invalid Service: " .. tostring(name))
-            end
-        end
-    })
-   
-    local PlaceId, JobId = game.PlaceId, game.JobId
+  
+    print("🔄 " .. (reason or "Hopping") .. " | Timer complete")
+  
+    local Services = setmetatable({}, { __index = function(self, name)
+        return cloneref(game:GetService(name))
+    end})
+
+    local PlaceId = game.PlaceId
+    local JobId = game.JobId
     local servers = {}
-   
-    local req = game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Desc&limit=100&excludeFullGames=true")
-    local body = Services.HttpService:JSONDecode(req)
-   
-    if body and body.data then
-        for i, v in next, body.data do
-            if type(v) == "table" and tonumber(v.playing) and tonumber(v.maxPlayers)
-               and v.playing < v.maxPlayers and v.id ~= JobId then
-                table.insert(servers, 1, v.id)
+
+    local success, req = pcall(function()
+        return game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Desc&limit=100&excludeFullGames=true")
+    end)
+
+    if success and req then
+        local body = Services.HttpService:JSONDecode(req)
+        if body and body.data then
+            for _, v in ipairs(body.data) do
+                if v.playing and v.maxPlayers and v.playing < v.maxPlayers and v.id ~= JobId then
+                    table.insert(servers, v.id)
+                end
             end
         end
     end
-   
-    if #servers >= 1 then
+
+    if #servers > 0 then
         local chosen = servers[math.random(1, #servers)]
         addToAvoidList(chosen)
         print("🎯 Hopping to new server")
-        Services.TeleportService:TeleportToPlaceInstance(PlaceId, chosen, game.Players.LocalPlayer)
+        TeleportService:TeleportToPlaceInstance(PlaceId, chosen, player)
     else
-        print("⚠️ No available servers, retrying in 5s...")
+        print("⚠️ No servers, retrying...")
         hasHopped = false
         task.wait(5)
     end
 end
 
--- ====================== 30 SECOND AUTO HOP (Every Server) ======================
 if hopEnabled then
     task.spawn(function()
         while hopEnabled do
             task.wait(hopAfterSeconds)
             if not hasHopped then
-                GETOUT("30 seconds reached")
+                GETOUT("Auto hop timer")
             end
         end
     end)
@@ -137,25 +126,22 @@ if autoEquipEnabled then
     end)
 end
 
--- ====================== KILL ALL ======================
+-- ====================== KILL ALL (NO DISTANCE) ======================
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
- 
+
     while killAllEnabled do
         local char = player.Character
-        if not char then 
-            task.wait(0.1) 
-            continue 
-        end
+        if not char then task.wait(0.1) continue end
         
         local root = char:FindFirstChild("HumanoidRootPart")
         local rightHand = char:FindFirstChild("RightHand")
         local leftHand = char:FindFirstChild("LeftHand")
         
-        if not (root and rightHand and leftHand) then 
-            task.wait(0.2) 
-            continue 
+        if not (root and rightHand and leftHand) then
+            task.wait(0.15)
+            continue
         end
 
         for _, target in ipairs(game.Players:GetPlayers()) do
@@ -175,17 +161,13 @@ task.spawn(function()
             
             if tRoot and tHum and tHum.Health > 0 then
                 pcall(function()
-                    -- Distance check to reduce lag
-                    local distance = (root.Position - tRoot.Position).Magnitude
-                    if distance > 50 then continue end   -- Only attack close players
-                    
                     firetouchinterest(rightHand, tRoot, 1)
                     firetouchinterest(leftHand, tRoot, 1)
                     
                     player.muscleEvent:FireServer("punch", "rightHand")
                     player.muscleEvent:FireServer("punch", "leftHand")
                     
-                    task.wait(0.005)  -- Balanced delay
+                    task.wait(0.0035)
                     
                     firetouchinterest(rightHand, tRoot, 0)
                     firetouchinterest(leftHand, tRoot, 0)
@@ -193,8 +175,8 @@ task.spawn(function()
             end
         end
         
-        task.wait(0.045)   -- Main loop delay (good balance)
+        task.wait(0.042)   -- Balanced for full server
     end
 end)
 
-print("✅ Script Loaded | Auto Hop Every " .. hopAfterSeconds .. " Seconds")
+print("✅ Script Loaded | No Distance Limit | Auto Hop Every " .. hopAfterSeconds .. "s")
