@@ -10,7 +10,7 @@ local killAllEnabled = true
 local autoEquipEnabled = true
 local hopEnabled = false
 local godmodeEnabled = false
-local performanceBoostEnabled = false
+local performanceBoostEnabled = true
 
 -- STRICT 15+ ONLY
 local minPlayersToHop = 6
@@ -20,7 +20,7 @@ local scanPages = 350
 local hopDelay = 4
 
 -- =================================================
-local disableAllGUIs = false
+local disableAllGUIs = true
 local freezeInAirEnabled = false
 local freezeHeight = 10000
 
