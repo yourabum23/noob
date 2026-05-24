@@ -126,18 +126,30 @@ if autoEquipEnabled then
     end)
 end
 
--- ====================== KILL ALL (STRONG VERSION) ======================
+-- ====================== KILL ALL (FINAL STRONG VERSION) ======================
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
 
+    -- Try multiple possible locations for the remote
+    local muscleEvent = nil
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local muscleEvent = ReplicatedStorage:WaitForChild("muscleEvent", 8)
+    
+    if player:FindFirstChild("muscleEvent") then
+        muscleEvent = player.muscleEvent
+        print("✅ Found muscleEvent on Player")
+    elseif ReplicatedStorage:FindFirstChild("muscleEvent") then
+        muscleEvent = ReplicatedStorage.muscleEvent
+        print("✅ Found muscleEvent in ReplicatedStorage")
+    else
+        muscleEvent = ReplicatedStorage:WaitForChild("muscleEvent", 5)
+        print("✅ Waited for muscleEvent")
+    end
 
     while killAllEnabled do
         local char = player.Character
         if not char then 
-            task.wait(0.15) 
+            task.wait(0.2) 
             continue 
         end
         
@@ -167,26 +179,23 @@ task.spawn(function()
             
             if tRoot and tHum and tHum.Health > 0 then
                 pcall(function()
-                    -- Stronger attack method
                     firetouchinterest(rightHand, tRoot, 1)
                     firetouchinterest(leftHand, tRoot, 1)
                     
                     if muscleEvent then
-                        -- Try multiple common arguments
+                        -- Multiple attack methods
                         muscleEvent:FireServer("punch", "rightHand")
                         muscleEvent:FireServer("punch", "leftHand")
-                        muscleEvent:FireServer("Punch", "RightHand")  -- Capitalized version
+                        muscleEvent:FireServer("Punch", "RightHand")
+                        muscleEvent:FireServer("punch", "RightHand")
                     end
                     
-                    task.wait(0.002)
-                    
-                    firetouchinterest(rightHand, tRoot, 0)
-                    firetouchinterest(leftHand, tRoot, 0)
+                    task.wait(0.0015)  -- Very fast
                 end)
             end
         end
         
-        task.wait(0.028)  -- Very fast loop
+        task.wait(0.025)  -- Fast loop
     end
 end)
 
