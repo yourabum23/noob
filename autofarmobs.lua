@@ -6,10 +6,10 @@ local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
 
 -- ==================== SETTINGS ====================
-local killAllEnabled = false
-local autoEquipEnabled = false
+local killAllEnabled = true
+local autoEquipEnabled = true
 local hopEnabled = false
-local godmodeEnabled = true
+local godmodeEnabled = false
 local performanceBoostEnabled = false
 
 -- STRICT 15+ ONLY
