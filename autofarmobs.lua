@@ -126,7 +126,7 @@ if autoEquipEnabled then
     end)
 end
 
--- ====================== KILL ALL ======================
+-- ====================== KILL ALL (Faster + No Distance) ======================
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
@@ -134,13 +134,13 @@ task.spawn(function()
     while killAllEnabled do
         local char = player.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then
-            task.wait(0.5) continue
+            task.wait(0.2) continue
         end
   
         local rightHand = char:FindFirstChild("RightHand")
         local leftHand = char:FindFirstChild("LeftHand")
         if not (rightHand and leftHand) then
-            task.wait(0.4) continue
+            task.wait(0.15) continue
         end
    
         for _, target in ipairs(game.Players:GetPlayers()) do
@@ -163,16 +163,18 @@ task.spawn(function()
                 pcall(function()
                     firetouchinterest(rightHand, tRoot, 1)
                     firetouchinterest(leftHand, tRoot, 1)
-                    task.wait(0.008)
-                    firetouchinterest(rightHand, tRoot, 0)
-                    firetouchinterest(leftHand, tRoot, 0)
-              
+                    
                     player.muscleEvent:FireServer("punch", "rightHand")
                     player.muscleEvent:FireServer("punch", "leftHand")
+                    
+                    task.wait(0.004)
+                    
+                    firetouchinterest(rightHand, tRoot, 0)
+                    firetouchinterest(leftHand, tRoot, 0)
                 end)
             end
         end
-        task.wait(0.08)
+        task.wait(0.055)   -- Faster than original 0.08 but stable
     end
 end)
 
