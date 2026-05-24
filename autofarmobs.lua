@@ -1,4 +1,4 @@
--- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + STRICT 15-20 + ULTRA GODMODE + AUTO FRIENDS
+-- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + STRICT 15-20 + FULL GODMODE + BLUE BUBBLE
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -38,11 +38,26 @@ local function addToAvoidList(jobId)
 end
 addToAvoidList(game.JobId)
 
--- ====================== FIXED ULTRA GODMODE (No more floating/jump issues) ======================
+-- ====================== FULL GODMODE + BLUE BUBBLE FORCEFIELD ======================
 local function enableGodmode()
     if not godmodeEnabled then return end
     
-    -- Main protection loop (Health only)
+    local function createBlueBubble(char)
+        if not char then return end
+        
+        -- Remove old forcefields
+        for _, v in pairs(char:GetChildren()) do
+            if v:IsA("ForceField") then v:Destroy() end
+        end
+        
+        -- Create permanent blue bubble (Roblox loading screen style)
+        local forceField = Instance.new("ForceField")
+        forceField.Name = "GodmodeBubble"
+        forceField.Visible = true
+        forceField.Parent = char
+    end
+
+    -- Main protection
     task.spawn(function()
         while godmodeEnabled do
             local char = player.Character
@@ -52,39 +67,40 @@ local function enableGodmode()
                     hum.MaxHealth = math.huge
                     hum.Health = math.huge
                     hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-                    hum.PlatformStand = false
-                    hum.Sit = false
+                end
+                
+                -- Keep blue bubble alive
+                if not char:FindFirstChild("GodmodeBubble") then
+                    createBlueBubble(char)
                 end
             end
-            task.wait(0.01)
+            task.wait(0.1)
         end
     end)
 
-    -- Smart Anti-Knockback (Only reduces strong hits, doesn't break jumping/walking)
-    local hbConn = RunService.Heartbeat:Connect(function()
+    -- Extra protection layers
+    RunService.Heartbeat:Connect(function()
         local char = player.Character
-        if not char then return end
-        
-        local hum = char:FindFirstChild("Humanoid")
-        local root = char:FindFirstChild("HumanoidRootPart")
-        
-        if hum then
-            hum.Health = math.huge
-        end
-        
-        if root then
-            local vel = root.Velocity
-            -- Only reduce strong horizontal knockback (from punches), allow normal jump & movement
-            if math.abs(vel.X) > 30 or math.abs(vel.Z) > 30 then
-                root.Velocity = Vector3.new(vel.X * 0.25, vel.Y, vel.Z * 0.25)
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then
+                hum.Health = math.huge
             end
-            root.RotVelocity = Vector3.zero
+        end
+    end)
+
+    RunService.Stepped:Connect(function()
+        local char = player.Character
+        if char and not char:FindFirstChild("GodmodeBubble") then
+            createBlueBubble(char)
         end
     end)
 
     -- Respawn protection
     player.CharacterAdded:Connect(function(char)
         task.wait(0.3)
+        createBlueBubble(char)
+        
         local hum = char:WaitForChild("Humanoid", 5)
         if hum then
             hum.MaxHealth = math.huge
@@ -332,4 +348,4 @@ task.spawn(function()
     end
 end)
 
-print("✅ FIXED - Jumping & Walking should now work normally")
+print("✅ FULL GODMODE + BLUE BUBBLE LOADED | You now have permanent loading screen protection")
