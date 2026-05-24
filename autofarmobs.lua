@@ -1,4 +1,4 @@
--- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + STRICT 15-20 (Improved Scanner)
+-- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + STRICT 15-20
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -11,12 +11,10 @@ local autoEquipEnabled = true
 local hopEnabled = true
 local performanceBoostEnabled = true
 
--- STRICT 15+ ONLY + DESCENDING SERVERS
+-- STRICT 15+ ONLY
 local minPlayersToHop = 6
 local targetMinPlayers = 15
 local maxPreferredPlayers = 20
-local scanPages = 500               -- Increased heavily
-local hopDelay = 6
 
 -- =================================================
 local disableAllGUIs = true
@@ -65,75 +63,53 @@ local function disableGUIs()
     end)
 end
 
--- ====================== IMPROVED SERVER SCANNER ======================
+-- ====================== NEW SERVER HOP SYSTEM (From Your Script) ======================
 local hasHopped = false
 
-local function findBestServer()
-    local success, result = pcall(function()
-        local goodServers = {}
-        local cursor = ""
-        
-        print("🔍 Deep scanning for 15-20 player servers... (This may take a moment)")
-
-        for page = 1, scanPages do
-            local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
-            if cursor and cursor ~= "" then
-                url = url .. "&cursor=" .. cursor
-            end
-            
-            local response = HttpService:GetAsync(url)
-            local data = HttpService:JSONDecode(response)
-            
-            for _, server in ipairs(data.data or {}) do
-                local plrs = server.playing or 0
-                if plrs >= targetMinPlayers and plrs <= maxPreferredPlayers
-                   and not table.find(getgenv().AvoidedServers, server.id)
-                   and server.id ~= game.JobId then
-                    
-                    table.insert(goodServers, {
-                        id = server.id,
-                        playing = plrs
-                    })
-                end
-            end
-            
-            cursor = data.nextPageCursor
-            if not cursor then break end
-            
-            task.wait(0.08) -- Slightly longer delay to avoid rate limits
-        end
-        
-        if #goodServers == 0 then 
-            print("⚠️ Still no 15-20 servers found... Retrying later")
-            return nil 
-        end
-        
-        table.sort(goodServers, function(a, b) return a.playing > b.playing end)
-        
-        print("✅ Found " .. #goodServers .. " valid high servers | Best: " .. goodServers[1].playing .. "/20")
-        return goodServers[1]
-    end)
-    
-    return success and result or nil
-end
-
-local function serverHop(reason)
+local function GETOUT(reason)
     if hasHopped then return end
     hasHopped = true
     
-    print("🔄 " .. reason .. " | Avoiding " .. #getgenv().AvoidedServers .. " servers")
-    task.wait(hopDelay)
+    print("🔄 " .. (reason or "Hopping") .. " | Using new server hop system")
     
-    local bestServer = findBestServer()
+    local Services = setmetatable({}, {
+        __index = function(self, name)
+            local success, cache = pcall(function()
+                return cloneref(game:GetService(name))
+            end)
+            if success then
+                rawset(self, name, cache)
+                return cache
+            else
+                error("Invalid Service: " .. tostring(name))
+            end
+        end
+    })
     
-    if bestServer then
-        addToAvoidList(bestServer.id)
-        print("🎯 Hopping to " .. bestServer.playing .. "/20 player server")
-        TeleportService:TeleportToPlaceInstance(game.PlaceId, bestServer.id, player)
+    local PlaceId, JobId = game.PlaceId, game.JobId
+    local servers = {}
+    
+    local req = game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Desc&limit=100&excludeFullGames=true")
+    local body = Services.HttpService:JSONDecode(req)
+    
+    if body and body.data then
+        for i, v in next, body.data do
+            if type(v) == "table" and tonumber(v.playing) and tonumber(v.maxPlayers) 
+               and v.playing < v.maxPlayers and v.id ~= JobId then
+                table.insert(servers, 1, v.id)
+            end
+        end
+    end
+    
+    if #servers >= 1 then
+        local chosen = servers[math.random(1, #servers)]
+        addToAvoidList(chosen)
+        print("🎯 Hopping to random server")
+        Services.TeleportService:TeleportToPlaceInstance(PlaceId, chosen, game.Players.LocalPlayer)
     else
-        print("⏳ No suitable servers right now. Resetting and retrying...")
+        print("⚠️ No available servers, retrying...")
         hasHopped = false
-        task.wait(10)
+        task.wait(6)
     end
 end
 
@@ -145,7 +121,7 @@ task.spawn(function()
         if current < targetMinPlayers then
             print("⚠️ Joined low server (" .. current .. " players) → Hopping")
             addToAvoidList(game.JobId)
-            serverHop("Joined server below 15 players")
+            GETOUT("Joined server below 15 players")
             break
         end
         task.wait(3)
@@ -158,7 +134,7 @@ if hopEnabled then
         while hopEnabled and not hasHopped do
             local current = #game.Players:GetPlayers()
             if current < minPlayersToHop then
-                serverHop("Player count dropped below 15")
+                GETOUT("Player count dropped below " .. minPlayersToHop)
                 break
             end
             task.wait(2.5)
@@ -231,4 +207,4 @@ task.spawn(function()
     end
 end)
 
-print("✅ Improved Scanner Loaded | Should now detect high player servers better")
+print("✅ Script Loaded | New Server Hop System Integrated")
