@@ -141,24 +141,26 @@ end
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
-    
+ 
     while killAllEnabled do
         local char = player.Character
-        if not char then task.wait(0.1) continue end
+        if not char then 
+            task.wait(0.1) 
+            continue 
+        end
         
         local root = char:FindFirstChild("HumanoidRootPart")
         local rightHand = char:FindFirstChild("RightHand")
         local leftHand = char:FindFirstChild("LeftHand")
         
         if not (root and rightHand and leftHand) then 
-            task.wait(0.15) 
+            task.wait(0.2) 
             continue 
         end
 
         for _, target in ipairs(game.Players:GetPlayers()) do
             if target == player then continue end
             
-            -- Skip friends
             local isFriend = false
             pcall(function()
                 isFriend = player:IsFriendsWith(target.UserId)
@@ -173,16 +175,17 @@ task.spawn(function()
             
             if tRoot and tHum and tHum.Health > 0 then
                 pcall(function()
-                    -- Faster touch spam
+                    -- Distance check to reduce lag
+                    local distance = (root.Position - tRoot.Position).Magnitude
+                    if distance > 50 then continue end   -- Only attack close players
+                    
                     firetouchinterest(rightHand, tRoot, 1)
                     firetouchinterest(leftHand, tRoot, 1)
                     
-                    -- Fire punches immediately
                     player.muscleEvent:FireServer("punch", "rightHand")
                     player.muscleEvent:FireServer("punch", "leftHand")
                     
-                    -- Very short delay
-                    task.wait(0.003)
+                    task.wait(0.005)  -- Balanced delay
                     
                     firetouchinterest(rightHand, tRoot, 0)
                     firetouchinterest(leftHand, tRoot, 0)
@@ -190,8 +193,7 @@ task.spawn(function()
             end
         end
         
-        -- Much tighter loop
-        task.wait(0.025)  -- Was 0.08 → now ~3x faster
+        task.wait(0.045)   -- Main loop delay (good balance)
     end
 end)
 
