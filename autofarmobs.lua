@@ -128,7 +128,7 @@ if autoEquipEnabled then
     end)
 end
 
--- ====================== KILL ALL (Ultra Stable - Long Session) ======================
+-- ====================== KILL ALL (Hop Stable Version) ======================
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
@@ -136,17 +136,18 @@ task.spawn(function()
     while killAllEnabled do
         local char = player.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then
-            task.wait(0.3) continue
+            task.wait(0.35) continue
         end
   
         local rightHand = char:FindFirstChild("RightHand")
         local leftHand = char:FindFirstChild("LeftHand")
         if not (rightHand and leftHand) then
-            task.wait(0.25) continue
+            task.wait(0.3) continue
         end
 
+        local root = char.HumanoidRootPart
         local attackCount = 0
-        local maxAttacksPerCycle = 5   -- Very conservative
+        local maxAttacksPerCycle = 4   -- Very low to prevent crash
 
         for _, target in ipairs(game.Players:GetPlayers()) do
             if target == player then continue end
@@ -165,6 +166,10 @@ task.spawn(function()
             local tHum = tChar:FindFirstChild("Humanoid")
       
             if tRoot and tHum and tHum.Health > 0 then
+                -- Only attack if somewhat close (helps a lot with stability)
+                local distance = (root.Position - tRoot.Position).Magnitude
+                if distance > 80 then continue end
+                
                 pcall(function()
                     firetouchinterest(rightHand, tRoot, 1)
                     firetouchinterest(leftHand, tRoot, 1)
@@ -172,7 +177,7 @@ task.spawn(function()
                     player.muscleEvent:FireServer("punch", "rightHand")
                     player.muscleEvent:FireServer("punch", "leftHand")
                     
-                    task.wait(0.009)   -- Higher delay
+                    task.wait(0.012)
                     
                     firetouchinterest(rightHand, tRoot, 0)
                     firetouchinterest(leftHand, tRoot, 0)
@@ -181,7 +186,7 @@ task.spawn(function()
             end
         end
        
-        task.wait(0.085)   -- Main delay (important for stability)
+        task.wait(0.095)   -- Slower main loop = much more stable on hops
     end
 end)
 
