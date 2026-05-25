@@ -128,7 +128,7 @@ if autoEquipEnabled then
     end)
 end
 
--- ====================== KILL ALL (Long Session Stable) ======================
+-- ====================== KILL ALL (Ultra Stable - Long Session) ======================
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
@@ -136,21 +136,21 @@ task.spawn(function()
     while killAllEnabled do
         local char = player.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then
-            task.wait(0.25) continue
+            task.wait(0.3) continue
         end
   
         local rightHand = char:FindFirstChild("RightHand")
         local leftHand = char:FindFirstChild("LeftHand")
         if not (rightHand and leftHand) then
-            task.wait(0.2) continue
+            task.wait(0.25) continue
         end
 
         local attackCount = 0
-        local maxAttacksPerCycle = 8   -- Change to 6 if still crashes
+        local maxAttacksPerCycle = 5   -- Very conservative
 
         for _, target in ipairs(game.Players:GetPlayers()) do
             if target == player then continue end
-            if attackCount >= maxAttacksPerCycle then break end   -- Limit attacks
+            if attackCount >= maxAttacksPerCycle then break end
        
             local isFriend = false
             pcall(function()
@@ -172,7 +172,7 @@ task.spawn(function()
                     player.muscleEvent:FireServer("punch", "rightHand")
                     player.muscleEvent:FireServer("punch", "leftHand")
                     
-                    task.wait(0.007)
+                    task.wait(0.009)   -- Higher delay
                     
                     firetouchinterest(rightHand, tRoot, 0)
                     firetouchinterest(leftHand, tRoot, 0)
@@ -181,7 +181,7 @@ task.spawn(function()
             end
         end
        
-        task.wait(0.072)   -- Slightly higher for long sessions
+        task.wait(0.085)   -- Main delay (important for stability)
     end
 end)
 
