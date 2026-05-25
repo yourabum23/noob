@@ -128,7 +128,7 @@ if autoEquipEnabled then
     end)
 end
 
--- ====================== KILL ALL (Stable + Faster) ======================
+-- ====================== KILL ALL (Long Session Stable) ======================
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
@@ -144,15 +144,18 @@ task.spawn(function()
         if not (rightHand and leftHand) then
             task.wait(0.2) continue
         end
-   
+
+        local attackCount = 0
+        local maxAttacksPerCycle = 8   -- Change to 6 if still crashes
+
         for _, target in ipairs(game.Players:GetPlayers()) do
             if target == player then continue end
+            if attackCount >= maxAttacksPerCycle then break end   -- Limit attacks
        
             local isFriend = false
             pcall(function()
                 isFriend = player:IsFriendsWith(target.UserId)
             end)
-       
             if isFriend then continue end
         
             local tChar = target.Character
@@ -169,15 +172,16 @@ task.spawn(function()
                     player.muscleEvent:FireServer("punch", "rightHand")
                     player.muscleEvent:FireServer("punch", "leftHand")
                     
-                    task.wait(0.006)   -- Slightly higher than before
+                    task.wait(0.007)
                     
                     firetouchinterest(rightHand, tRoot, 0)
                     firetouchinterest(leftHand, tRoot, 0)
                 end)
+                attackCount = attackCount + 1
             end
         end
-        
-        task.wait(0.065)   -- Main delay (balanced for long sessions)
+       
+        task.wait(0.072)   -- Slightly higher for long sessions
     end
 end)
 
