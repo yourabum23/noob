@@ -12,6 +12,8 @@ local performanceBoostEnabled = true
 local hopAfterSeconds = 45
 -- =================================================
 
+setfpscap(60)
+
 local disableAllGUIs = true
 
 -- ULTRA BLACKLIST
