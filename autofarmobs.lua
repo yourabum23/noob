@@ -63,21 +63,18 @@ local hasHopped = false
 local function GETOUT(reason)
     if hasHopped then return end
     hasHopped = true
-  
+ 
     print("🔄 " .. (reason or "Hopping") .. " | Timer complete")
-  
+ 
     local Services = setmetatable({}, { __index = function(self, name)
         return cloneref(game:GetService(name))
     end})
-
     local PlaceId = game.PlaceId
     local JobId = game.JobId
     local servers = {}
-
     local success, req = pcall(function()
         return game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Desc&limit=100&excludeFullGames=true")
     end)
-
     if success and req then
         local body = Services.HttpService:JSONDecode(req)
         if body and body.data then
@@ -88,7 +85,6 @@ local function GETOUT(reason)
             end
         end
     end
-
     if #servers > 0 then
         local chosen = servers[math.random(1, #servers)]
         addToAvoidList(chosen)
@@ -128,7 +124,7 @@ if autoEquipEnabled then
     end)
 end
 
--- ====================== KILL ALL (Working + Balanced) ======================
+-- ====================== KILL ALL (Faster + No Limit + Optimized) ======================
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
@@ -136,21 +132,17 @@ task.spawn(function()
     while killAllEnabled do
         local char = player.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then
-            task.wait(0.3) continue
+            task.wait(0.25) continue
         end
   
         local rightHand = char:FindFirstChild("RightHand")
         local leftHand = char:FindFirstChild("LeftHand")
         if not (rightHand and leftHand) then
-            task.wait(0.25) continue
+            task.wait(0.2) continue
         end
-
-        local attackCount = 0
-        local maxAttacksPerCycle = 6   -- Balanced number
 
         for _, target in ipairs(game.Players:GetPlayers()) do
             if target == player then continue end
-            if attackCount >= maxAttacksPerCycle then break end
        
             local isFriend = false
             pcall(function()
@@ -172,17 +164,16 @@ task.spawn(function()
                     player.muscleEvent:FireServer("punch", "rightHand")
                     player.muscleEvent:FireServer("punch", "leftHand")
                     
-                    task.wait(0.008)
+                    task.wait(0.0035)   -- Fast but not too extreme
                     
                     firetouchinterest(rightHand, tRoot, 0)
                     firetouchinterest(leftHand, tRoot, 0)
                 end)
-                attackCount = attackCount + 1
             end
         end
        
-        task.wait(0.078)   -- Good balance
+        task.wait(0.052)   -- Main loop delay - balanced for speed + stability
     end
 end)
 
-print("✅ Script Loaded | No Distance Limit | Auto Hop Every " .. hopAfterSeconds .. "s")
+print("✅ Script Loaded | Full Kill All | Auto Hop Every " .. hopAfterSeconds .. "s")
