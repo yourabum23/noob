@@ -1,4 +1,4 @@
--- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + 30s Auto Hop
+-- Larp Hub - Kill All + Auto Equip + ULTRA ANTI-REJOIN + 45s Auto Hop
 local player = game.Players.LocalPlayer
 local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
@@ -63,18 +63,20 @@ local hasHopped = false
 local function GETOUT(reason)
     if hasHopped then return end
     hasHopped = true
- 
     print("🔄 " .. (reason or "Hopping") .. " | Timer complete")
  
     local Services = setmetatable({}, { __index = function(self, name)
         return cloneref(game:GetService(name))
     end})
+    
     local PlaceId = game.PlaceId
     local JobId = game.JobId
     local servers = {}
+    
     local success, req = pcall(function()
         return game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Desc&limit=100&excludeFullGames=true")
     end)
+    
     if success and req then
         local body = Services.HttpService:JSONDecode(req)
         if body and body.data then
@@ -85,6 +87,7 @@ local function GETOUT(reason)
             end
         end
     end
+    
     if #servers > 0 then
         local chosen = servers[math.random(1, #servers)]
         addToAvoidList(chosen)
@@ -124,19 +127,23 @@ if autoEquipEnabled then
     end)
 end
 
--- ====================== KILL ALL (Faster + No Limit + Optimized) ======================
+-- ====================== KILL ALL (Stronger Full Kill) ======================
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
- 
+
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local muscleEvent = ReplicatedStorage:FindFirstChild("muscleEvent") or player:FindFirstChild("muscleEvent")
+
     while killAllEnabled do
         local char = player.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then
-            task.wait(0.25) continue
+            task.wait(0.2) continue
         end
   
-        local rightHand = char:FindFirstChild("RightHand")
-        local leftHand = char:FindFirstChild("LeftHand")
+        local rightHand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
+        local leftHand = char:FindFirstChild("LeftHand") or char:FindFirstChild("Left Arm")
+        
         if not (rightHand and leftHand) then
             task.wait(0.2) continue
         end
@@ -158,13 +165,18 @@ task.spawn(function()
       
             if tRoot and tHum and tHum.Health > 0 then
                 pcall(function()
+                    -- Stronger touching
                     firetouchinterest(rightHand, tRoot, 1)
                     firetouchinterest(leftHand, tRoot, 1)
                     
-                    player.muscleEvent:FireServer("punch", "rightHand")
-                    player.muscleEvent:FireServer("punch", "leftHand")
+                    -- Multiple remote calls
+                    if muscleEvent then
+                        muscleEvent:FireServer("punch", "rightHand")
+                        muscleEvent:FireServer("punch", "leftHand")
+                        muscleEvent:FireServer("punch", "RightHand")
+                    end
                     
-                    task.wait(0.0035)   -- Fast but not too extreme
+                    task.wait(0.003)
                     
                     firetouchinterest(rightHand, tRoot, 0)
                     firetouchinterest(leftHand, tRoot, 0)
@@ -172,7 +184,7 @@ task.spawn(function()
             end
         end
        
-        task.wait(0.052)   -- Main loop delay - balanced for speed + stability
+        task.wait(0.048)   -- Fast but more stable
     end
 end)
 
