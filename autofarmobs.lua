@@ -11,6 +11,9 @@ local hopEnabled = true
 local performanceBoostEnabled = true
 local disableAllGUIs = true
 local hopAfterSeconds = 40
+
+-- New Setting
+local autoHopOnDeath = true  -- Hop if killed by stronger player
 -- =================================================
 
 setfpscap(50)
@@ -43,7 +46,7 @@ local function applyPerformanceBoost()
     end)
 end
 
--- ====================== DISABLE OTHER GUIS (Protected) ======================
+-- ====================== DISABLE OTHER GUIS ======================
 local function disableGUIs()
     if not disableAllGUIs then return end
     task.spawn(function()
@@ -60,7 +63,7 @@ local function disableGUIs()
     end)
 end
 
--- ====================== STATS GUI (Kills Tracker) ======================
+-- ====================== STATS GUI ======================
 local function createStatsGUI()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "LarpHubStats"
@@ -164,6 +167,41 @@ if hopEnabled then
     end)
 end
 
+-- ====================== AUTO HOP ON DEATH BY STRONGER PLAYER ======================
+task.spawn(function()
+    while true do
+        local char = player.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.Died:Connect(function()
+                if not autoHopOnDeath then return end
+                
+                -- Check if killed by stronger player
+                local killer = nil
+                -- Simple check: look for nearby players with much higher strength
+                for _, plr in ipairs(game.Players:GetPlayers()) do
+                    if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                        local dist = (plr.Character.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
+                        if dist < 50 then
+                            local theirStrength = plr.leaderstats and plr.leaderstats:FindFirstChild("Strength")
+                            local myStrength = player.leaderstats and player.leaderstats:FindFirstChild("Strength")
+                            if theirStrength and myStrength and theirStrength.Value > myStrength.Value * 1.5 then
+                                killer = plr
+                                break
+                            end
+                        end
+                    end
+                end
+                
+                if killer then
+                    print("💀 Died to stronger player (" .. killer.Name .. ") → Hopping")
+                    GETOUT("Died to stronger player")
+                end
+            end)
+        end
+        task.wait(2)
+    end
+end)
+
 -- ====================== AUTO EQUIP ======================
 if autoEquipEnabled then
     task.spawn(function()
@@ -249,4 +287,4 @@ task.spawn(function()
     end
 end)
 
-print("✅ Script Loaded | Improved Kill All + Protected Stats GUI + Server Hop")
+print("✅ Script Loaded | Improved Kill All + Stats GUI + Server Hop on Death")
