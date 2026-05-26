@@ -7,14 +7,14 @@ local Lighting = game:GetService("Lighting")
 -- ==================== SETTINGS ====================
 local killAllEnabled = true
 local autoEquipEnabled = true
-local hopEnabled = true
-local performanceBoostEnabled = true
+local hopEnabled = false
+local performanceBoostEnabled = false
 local hopAfterSeconds = 45
 -- =================================================
 
 setfpscap(60)
 
-local disableAllGUIs = true
+local disableAllGUIs = false
 
 -- ULTRA BLACKLIST
 getgenv().AvoidedServers = getgenv().AvoidedServers or {}
