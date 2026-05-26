@@ -12,7 +12,7 @@ local performanceBoostEnabled = false
 local hopAfterSeconds = 45
 -- =================================================
 
-setfpscap(60)
+setfpscap(45)
 
 local disableAllGUIs = false
 
@@ -127,7 +127,7 @@ if autoEquipEnabled then
     end)
 end
 
--- ====================== KILL ALL (Stable No Crash Version) ======================
+-- ====================== KILL ALL (Very Stable) ======================
 task.spawn(function()
     applyPerformanceBoost()
     disableGUIs()
@@ -138,14 +138,14 @@ task.spawn(function()
     while killAllEnabled do
         local char = player.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then
-            task.wait(0.3) continue
+            task.wait(0.4) continue
         end
-  
+ 
         local rightHand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
         local leftHand = char:FindFirstChild("LeftHand") or char:FindFirstChild("Left Arm")
-        
+       
         if not (rightHand and leftHand) then
-            task.wait(0.25) continue
+            task.wait(0.35) continue
         end
 
         for _, target in ipairs(game.Players:GetPlayers()) do
@@ -156,32 +156,32 @@ task.spawn(function()
                 isFriend = player:IsFriendsWith(target.UserId)
             end)
             if isFriend then continue end
-        
+       
             local tChar = target.Character
             if not tChar then continue end
-      
+     
             local tRoot = tChar:FindFirstChild("HumanoidRootPart")
             local tHum = tChar:FindFirstChild("Humanoid")
-      
+     
             if tRoot and tHum and tHum.Health > 0 then
                 pcall(function()
                     firetouchinterest(rightHand, tRoot, 1)
                     firetouchinterest(leftHand, tRoot, 1)
-                    
+                   
                     if muscleEvent then
                         muscleEvent:FireServer("punch", "rightHand")
                         muscleEvent:FireServer("punch", "leftHand")
                     end
-                    
-                    task.wait(0.006)   -- Increased to reduce lag
-                    
+                   
+                    task.wait(0.009)   -- Higher delay = less lag
+                   
                     firetouchinterest(rightHand, tRoot, 0)
                     firetouchinterest(leftHand, tRoot, 0)
                 end)
             end
         end
-       
-        task.wait(0.085)   -- Main delay - very important for stability
+      
+        task.wait(0.11)   -- Main delay (this is key for long term stability)
     end
 end)
 
