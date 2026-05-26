@@ -43,41 +43,42 @@ local function applyPerformanceBoost()
     end)
 end
 
+-- ====================== DISABLE OTHER GUIS (Fixed) ======================
 local function disableGUIs()
     if not disableAllGUIs then return end
+    
     task.spawn(function()
+        -- Run once at start + occasional check
         while disableAllGUIs do
             pcall(function()
                 for _, gui in ipairs(player.PlayerGui:GetChildren()) do
-                    if gui:IsA("ScreenGui") then
-                        -- Protect our stats GUI
-                        if gui.Name ~= "LarpHubStats" then
-                            gui.Enabled = false
-                        end
+                    if gui:IsA("ScreenGui") and gui.Name ~= "LarpHubStats" then
+                        gui.Enabled = false
                     end
                 end
             end)
-            task.wait(4)
+            task.wait(8) -- Much slower check to avoid fighting with our GUI
         end
     end)
 end
 
--- ====================== STATS GUI (Kills Tracker) ======================
+-- ====================== STATS GUI (Protected) ======================
 local function createStatsGUI()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "LarpHubStats"
     screenGui.ResetOnSpawn = false
+    screenGui.DisplayOrder = 9999  -- Very high priority
     screenGui.Parent = player:WaitForChild("PlayerGui")
 
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 230, 0, 120)
-    frame.Position = UDim2.new(1, -250, 0, 20)
-    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    frame.Size = UDim2.new(0, 240, 0, 130)
+    frame.Position = UDim2.new(1, -260, 0, 20)
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     frame.BorderSizePixel = 0
     frame.Parent = screenGui
 
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 14)
+    corner.CornerRadius = UDim.new(0, 16)
     corner.Parent = frame
 
     local title = Instance.new("TextLabel")
@@ -90,7 +91,7 @@ local function createStatsGUI()
     title.Parent = frame
 
     local totalKills = Instance.new("TextLabel")
-    totalKills.Size = UDim2.new(1, 0, 0, 30)
+    totalKills.Size = UDim2.new(1, 0, 0, 35)
     totalKills.Position = UDim2.new(0, 0, 0, 40)
     totalKills.BackgroundTransparency = 1
     totalKills.Text = "Total Kills: 0"
@@ -100,11 +101,11 @@ local function createStatsGUI()
     totalKills.Parent = frame
 
     local gainedKills = Instance.new("TextLabel")
-    gainedKills.Size = UDim2.new(1, 0, 0, 30)
-    gainedKills.Position = UDim2.new(0, 0, 0, 75)
+    gainedKills.Size = UDim2.new(1, 0, 0, 35)
+    gainedKills.Position = UDim2.new(0, 0, 0, 80)
     gainedKills.BackgroundTransparency = 1
     gainedKills.Text = "Gained This Server: 0"
-    gainedKills.TextColor3 = Color3.fromRGB(0, 255, 120)
+    gainedKills.TextColor3 = Color3.fromRGB(0, 255, 100)
     gainedKills.TextScaled = true
     gainedKills.Font = Enum.Font.Gotham
     gainedKills.Parent = frame
