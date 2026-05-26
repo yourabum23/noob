@@ -49,12 +49,15 @@ local function disableGUIs()
         while disableAllGUIs do
             pcall(function()
                 for _, gui in ipairs(player.PlayerGui:GetChildren()) do
-                    if gui:IsA("ScreenGui") and not gui:FindFirstChild("LarpHubStats") then
-                        gui.Enabled = false
+                    if gui:IsA("ScreenGui") then
+                        -- Protect our stats GUI
+                        if gui.Name ~= "LarpHubStats" then
+                            gui.Enabled = false
+                        end
                     end
                 end
             end)
-            task.wait(5)
+            task.wait(4)
         end
     end)
 end
@@ -67,18 +70,18 @@ local function createStatsGUI()
     screenGui.Parent = player:WaitForChild("PlayerGui")
 
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 220, 0, 110)
-    frame.Position = UDim2.new(1, -230, 0, 10)
-    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    frame.Size = UDim2.new(0, 230, 0, 120)
+    frame.Position = UDim2.new(1, -250, 0, 20)
+    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     frame.BorderSizePixel = 0
     frame.Parent = screenGui
 
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 12)
+    corner.CornerRadius = UDim.new(0, 14)
     corner.Parent = frame
 
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 30)
+    title.Size = UDim2.new(1, 0, 0, 35)
     title.BackgroundTransparency = 1
     title.Text = "Larp Hub - Kills"
     title.TextColor3 = Color3.fromRGB(247, 241, 141)
@@ -88,7 +91,7 @@ local function createStatsGUI()
 
     local totalKills = Instance.new("TextLabel")
     totalKills.Size = UDim2.new(1, 0, 0, 30)
-    totalKills.Position = UDim2.new(0, 0, 0, 35)
+    totalKills.Position = UDim2.new(0, 0, 0, 40)
     totalKills.BackgroundTransparency = 1
     totalKills.Text = "Total Kills: 0"
     totalKills.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -98,10 +101,10 @@ local function createStatsGUI()
 
     local gainedKills = Instance.new("TextLabel")
     gainedKills.Size = UDim2.new(1, 0, 0, 30)
-    gainedKills.Position = UDim2.new(0, 0, 0, 65)
+    gainedKills.Position = UDim2.new(0, 0, 0, 75)
     gainedKills.BackgroundTransparency = 1
     gainedKills.Text = "Gained This Server: 0"
-    gainedKills.TextColor3 = Color3.fromRGB(0, 255, 100)
+    gainedKills.TextColor3 = Color3.fromRGB(0, 255, 120)
     gainedKills.TextScaled = true
     gainedKills.Font = Enum.Font.Gotham
     gainedKills.Parent = frame
@@ -184,7 +187,7 @@ task.spawn(function()
                 end)
             end
         end
-     
+    
         -- Update GUI
         local currentKills = killsStat.Value
         totalKillsLabel.Text = "Total Kills: " .. currentKills
@@ -194,4 +197,4 @@ task.spawn(function()
     end
 end)
 
-print("✅ Script Loaded | Improved Kill All + Stats GUI")
+print("✅ Script Loaded | Improved Kill All + Protected Stats GUI")
