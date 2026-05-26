@@ -43,12 +43,10 @@ local function applyPerformanceBoost()
     end)
 end
 
--- ====================== DISABLE OTHER GUIS (Fixed) ======================
+-- ====================== DISABLE OTHER GUIS (Protected) ======================
 local function disableGUIs()
     if not disableAllGUIs then return end
-    
     task.spawn(function()
-        -- Run once at start + occasional check
         while disableAllGUIs do
             pcall(function()
                 for _, gui in ipairs(player.PlayerGui:GetChildren()) do
@@ -57,17 +55,17 @@ local function disableGUIs()
                     end
                 end
             end)
-            task.wait(8) -- Much slower check to avoid fighting with our GUI
+            task.wait(8)
         end
     end)
 end
 
--- ====================== STATS GUI (Protected) ======================
+-- ====================== STATS GUI (Kills Tracker) ======================
 local function createStatsGUI()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "LarpHubStats"
     screenGui.ResetOnSpawn = false
-    screenGui.DisplayOrder = 9999  -- Very high priority
+    screenGui.DisplayOrder = 9999
     screenGui.Parent = player:WaitForChild("PlayerGui")
 
     local frame = Instance.new("Frame")
@@ -111,6 +109,59 @@ local function createStatsGUI()
     gainedKills.Parent = frame
 
     return totalKills, gainedKills
+end
+
+-- ====================== SERVER HOP ======================
+local hasHopped = false
+local function GETOUT(reason)
+    if hasHopped then return end
+    hasHopped = true
+    print("🔄 " .. (reason or "Hopping") .. " | Timer complete")
+    
+    local Services = setmetatable({}, { __index = function(self, name)
+        return cloneref(game:GetService(name))
+    end})
+   
+    local PlaceId = game.PlaceId
+    local JobId = game.JobId
+    local servers = {}
+   
+    local success, req = pcall(function()
+        return game:HttpGet("https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Desc&limit=100&excludeFullGames=true")
+    end)
+   
+    if success and req then
+        local body = Services.HttpService:JSONDecode(req)
+        if body and body.data then
+            for _, v in ipairs(body.data) do
+                if v.playing and v.maxPlayers and v.playing < v.maxPlayers and v.id ~= JobId then
+                    table.insert(servers, v.id)
+                end
+            end
+        end
+    end
+   
+    if #servers > 0 then
+        local chosen = servers[math.random(1, #servers)]
+        addToAvoidList(chosen)
+        print("🎯 Hopping to new server")
+        TeleportService:TeleportToPlaceInstance(PlaceId, chosen, player)
+    else
+        print("⚠️ No servers, retrying...")
+        hasHopped = false
+        task.wait(5)
+    end
+end
+
+if hopEnabled then
+    task.spawn(function()
+        while hopEnabled do
+            task.wait(hopAfterSeconds)
+            if not hasHopped then
+                GETOUT("Auto hop timer")
+            end
+        end
+    end)
 end
 
 -- ====================== AUTO EQUIP ======================
@@ -198,4 +249,4 @@ task.spawn(function()
     end
 end)
 
-print("✅ Script Loaded | Improved Kill All + Protected Stats GUI")
+print("✅ Script Loaded | Improved Kill All + Protected Stats GUI + Server Hop")
